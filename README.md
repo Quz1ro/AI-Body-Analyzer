@@ -17,19 +17,21 @@
 
 | Шар | Технологія |
 |-----|-----------|
-| Frontend | Next.js 15, TypeScript, Tailwind CSS |
-| Backend | Python, FastAPI, SQLAlchemy 2.0 |
+| Frontend | Next.js 15, TypeScript, Vanilla CSS (Premium Glassmorphism Design) |
+| Backend | Python, FastAPI, SQLAlchemy 2.0 (Async) |
 | Комп'ютерний зір | MediaPipe Pose, OpenCV |
-| AI-асистент | OpenAI GPT API (з fallback) |
-| База даних | PostgreSQL 16 |
-| Інфраструктура | Docker, Docker Compose |
+| AI-асистент | Google Gemini API (з автоматичним fallback та підтримкою ротації ключів) |
+| База даних | PostgreSQL 16 (або SQLite для локальної розробки) |
+| Інфраструктура | Docker, Docker Compose, run.bat (автоматичний запуск та налаштування) |
 
 ## 📁 Структура проєкту
 
 ```
 AI Body Analyzer/
+├── run.bat                 # Скрипт автоматичного налаштування та запуску
 ├── docker-compose.yml      # Оркестрація контейнерів
 ├── .env.example            # Шаблон змінних середовища
+├── gemini_keys.txt         # Список API ключів для ротації (опціонально)
 ├── frontend/               # Next.js додаток
 │   ├── src/
 │   │   ├── app/            # Сторінки (App Router)
@@ -38,53 +40,65 @@ AI Body Analyzer/
 │   │   ├── lib/            # API client, utilities
 │   │   └── types/          # TypeScript типи
 │   └── Dockerfile
-├── backend/                # FastAPI сервер
-│   ├── app/
-│   │   ├── api/            # REST API routes
-│   │   ├── models/         # SQLAlchemy ORM моделі
-│   │   ├── schemas/        # Pydantic schemas
-│   │   ├── services/       # CV, AI, бізнес-логіка
-│   │   └── core/           # Security, dependencies
-│   ├── alembic/            # Міграції БД
-│   └── Dockerfile
-└── docs/
+└── backend/                # FastAPI сервер
+    ├── app/
+    │   ├── api/            # REST API routes
+    │   ├── models/         # SQLAlchemy ORM моделі
+    │   ├── schemas/        # Pydantic schemas
+    │   ├── services/       # CV, AI, бізнес-логіка
+    │   └── core/           # Security, dependencies
+    ├── alembic/            # Міграції БД
+    └── Dockerfile
 ```
 
 ## 🚀 Швидкий старт
 
 ### Передумови
 
-- [Docker Desktop](https://docs.docker.com/get-docker/)
 - [Node.js 20+](https://nodejs.org/) (для локальної розробки frontend)
-- [Python 3.12+](https://python.org/) (для локальної розробки backend)
+- [Python 3.11+](https://python.org/) (для локальної розробки backend)
+- [Docker Desktop](https://docs.docker.com/get-docker/) (опціонально, для запуску в контейнерах)
+
+### Найпростіший запуск (Windows)
+
+Просто запустіть файл `run.bat` у кореневій директорії проєкту. 
+Скрипт автоматично:
+1. Перевірить наявність Python та Node.js.
+2. Створить віртуальне оточення Python (`backend/.venv`) та встановить необхідні залежності.
+3. Встановить залежності для Next.js (`frontend/node_modules`).
+4. Запустить бекенд та фронтенд у паралельних вікнах консолі.
+5. Відкриє застосунок у вашому браузері за адресою [http://localhost:3000](http://localhost:3000).
+
+---
+
+### Альтернативний запуск
 
 ### 1. Клонування та налаштування
-
 ```bash
 cd "AI Body Analyzer"
 cp .env.example .env
-# Відредагуйте .env: додайте LLM_API_KEY якщо хочете AI-чат
+# Відредагуйте .env або створіть gemini_keys.txt для роботи AI-чату
 ```
 
 ### 2. Запуск через Docker Compose
-
 ```bash
 docker-compose up --build
 ```
-
 Після запуску:
 - **Frontend**: http://localhost:3000
 - **Backend API**: http://localhost:8000
 - **API Docs**: http://localhost:8000/docs
 
-### 3. Локальна розробка (без Docker)
+### 3. Локальний ручний запуск (без Docker)
 
 **Backend:**
 ```bash
 cd backend
 python -m venv .venv
 .venv\Scripts\activate     # Windows
-pip install -e ".[dev]"
+# або source .venv/bin/activate для macOS/Linux
+pip install -e .
+pip install bcrypt
 uvicorn app.main:app --reload
 ```
 
@@ -95,10 +109,15 @@ npm install
 npm run dev
 ```
 
-**PostgreSQL** потрібен окремо (або через Docker):
-```bash
-docker run -d --name pg -p 5432:5432 -e POSTGRES_DB=body_analyzer -e POSTGRES_USER=app -e POSTGRES_PASSWORD=devpassword123 postgres:16-alpine
-```
+---
+
+## 🔑 Налаштування AI (Google Gemini)
+
+Для роботи ШІ-асистента та генерації детальних звітів необхідно налаштувати API ключ одним із двох способів:
+1. Додати рядок `LLM_API_KEY=ваш_ключ` у файл `.env`.
+2. Або створити файл `gemini_keys.txt` у корені проєкту та вказати один або кілька ключів через кому чи з нового рядка (система підтримує автоматичну ротацію ключів у разі лімітів).
+
+*Якщо ключів немає, застосунок працюватиме у режимі fallback (локальні евристичні розрахунки та фіксовані відповіді асистента).*
 
 ## 📡 API Endpoints
 
