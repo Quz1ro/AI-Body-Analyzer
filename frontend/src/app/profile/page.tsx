@@ -7,7 +7,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
-import { updateProfile, deleteAccount } from "@/lib/api";
+import { updateProfile, deleteAccount, resendVerification } from "@/lib/api";
 import { UserIcon, AlertTriangleIcon } from "@/components/ui/Icons";
 
 export default function ProfilePage() {
@@ -18,6 +18,8 @@ export default function ProfilePage() {
   const [saved, setSaved] = useState(false);
   const [deleting, setDeleting] = useState(false);
   const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [resending, setResending] = useState(false);
+  const [resentEmail, setResentEmail] = useState(false);
 
   useEffect(() => {
     if (authLoading) return;
@@ -53,6 +55,19 @@ export default function ProfilePage() {
       router.push("/auth/login");
     } catch (err) {
       setDeleting(false);
+    }
+  }
+
+  async function handleResendVerification() {
+    setResending(true);
+    try {
+      await resendVerification();
+      setResentEmail(true);
+      setTimeout(() => setResentEmail(false), 5000);
+    } catch {
+      // silent
+    } finally {
+      setResending(false);
     }
   }
 
@@ -93,7 +108,28 @@ export default function ProfilePage() {
           </div>
           <div>
             <div style={{ fontSize: "18px", fontWeight: 700 }}>{user.name}</div>
-            <div style={{ fontSize: "13px", color: "var(--text-muted)" }}>{user.email}</div>
+            <div style={{ fontSize: "13px", color: "var(--text-muted)", display: "flex", alignItems: "center", gap: "8px" }}>
+              {user.email}
+              {user.email_verified ? (
+                <span style={{
+                  fontSize: "11px",
+                  padding: "2px 8px",
+                  borderRadius: "999px",
+                  background: "rgba(0, 212, 170, 0.12)",
+                  color: "var(--accent-teal)",
+                  fontWeight: 600,
+                }}>✓ Підтверджено</span>
+              ) : (
+                <span style={{
+                  fontSize: "11px",
+                  padding: "2px 8px",
+                  borderRadius: "999px",
+                  background: "rgba(251, 191, 36, 0.12)",
+                  color: "#fbbf24",
+                  fontWeight: 600,
+                }}>Не підтверджено</span>
+              )}
+            </div>
             <div style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "4px" }}>
               Зареєстрований: {new Date(user.created_at).toLocaleDateString("uk-UA")}
             </div>
@@ -133,6 +169,36 @@ export default function ProfilePage() {
             )}
           </div>
         </form>
+
+        {/* Email Verification Section */}
+        {!user.email_verified && (
+          <div style={{
+            marginTop: "20px",
+            padding: "16px",
+            borderRadius: "var(--radius-sm)",
+            background: "linear-gradient(135deg, rgba(251, 191, 36, 0.06), rgba(245, 158, 11, 0.1))",
+            border: "1px solid rgba(251, 191, 36, 0.15)",
+          }}>
+            <div style={{ fontSize: "13px", fontWeight: 600, color: "#fbbf24", marginBottom: "8px" }}>
+              ⚠ Email не підтверджено
+            </div>
+            <p style={{ fontSize: "12px", color: "var(--text-secondary)", marginBottom: "12px" }}>
+              Підтвердіть вашу пошту, щоб отримати доступ до завантаження фото та аналізу.
+            </p>
+            {resentEmail ? (
+              <span style={{ fontSize: "13px", color: "var(--accent-teal)" }}>✓ Лист надіслано</span>
+            ) : (
+              <button
+                className="btn-secondary"
+                onClick={handleResendVerification}
+                disabled={resending}
+                style={{ padding: "8px 16px", fontSize: "13px" }}
+              >
+                {resending ? "Надсилання..." : "Надіслати лист підтвердження"}
+              </button>
+            )}
+          </div>
+        )}
       </div>
 
       {/* Danger Zone */}

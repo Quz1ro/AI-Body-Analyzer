@@ -9,6 +9,7 @@ class UserResponse(BaseModel):
     id: UUID
     name: str
     email: str
+    email_verified: bool = False
     avatar_url: str | None = None
     created_at: datetime
 

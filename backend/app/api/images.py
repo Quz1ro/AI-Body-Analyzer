@@ -15,7 +15,7 @@ from app.database import get_db
 from app.models.user import User
 from app.models.image import Image
 from app.schemas.image import ImageResponse
-from app.core.dependencies import get_current_user
+from app.core.dependencies import get_verified_user
 from app.config import settings
 
 router = APIRouter(prefix="/api/images", tags=["images"])
@@ -33,7 +33,7 @@ def _upload_dir(user_id: str) -> Path:
 @router.post("", response_model=ImageResponse, status_code=status.HTTP_201_CREATED)
 async def upload_image(
     file: UploadFile = File(...),
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_verified_user),
     db: AsyncSession = Depends(get_db),
 ):
     """Upload a body photo (JPG/PNG, max 10 MB)."""
@@ -76,7 +76,7 @@ async def upload_image(
 
 @router.get("", response_model=list[ImageResponse])
 async def list_images(
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_verified_user),
     db: AsyncSession = Depends(get_db),
 ):
     """List all images uploaded by the current user."""
@@ -89,7 +89,7 @@ async def list_images(
 @router.delete("/{image_id}", status_code=status.HTTP_204_NO_CONTENT)
 async def delete_image(
     image_id: str,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_verified_user),
     db: AsyncSession = Depends(get_db),
 ):
     """Delete an uploaded image (only the owner can delete)."""

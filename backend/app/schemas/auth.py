@@ -18,6 +18,7 @@ class TokenResponse(BaseModel):
     access_token: str
     refresh_token: str
     token_type: str = "bearer"
+    email_verified: bool = False
 
 
 class RefreshRequest(BaseModel):

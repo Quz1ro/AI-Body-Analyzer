@@ -141,6 +141,18 @@ export function logout() {
   clearTokens();
 }
 
+// ── Email Verification API ──────────────────────────────────
+
+export async function verifyEmail(token: string): Promise<{ message: string; already_verified: boolean }> {
+  return apiFetch<{ message: string; already_verified: boolean }>(`/api/auth/verify-email?token=${encodeURIComponent(token)}`);
+}
+
+export async function resendVerification(): Promise<{ message: string }> {
+  return apiFetch<{ message: string }>("/api/auth/resend-verification", {
+    method: "POST",
+  });
+}
+
 // ── User API ────────────────────────────────────────────────
 
 export async function getProfile(): Promise<User> {

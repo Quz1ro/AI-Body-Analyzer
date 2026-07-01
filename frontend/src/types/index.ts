@@ -8,6 +8,7 @@ export interface TokenResponse {
   access_token: string;
   refresh_token: string;
   token_type: string;
+  email_verified: boolean;
 }
 
 export interface RegisterRequest {
@@ -27,6 +28,7 @@ export interface User {
   id: string;
   name: string;
   email: string;
+  email_verified: boolean;
   avatar_url: string | null;
   created_at: string;
 }

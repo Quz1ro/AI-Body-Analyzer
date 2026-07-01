@@ -27,6 +27,15 @@ class Settings(BaseSettings):
     UPLOAD_DIR: str = "./uploads"
     MAX_FILE_SIZE: int = 10 * 1024 * 1024  # 10 MB
 
+    # ── SMTP (Email Verification) ────────────────────────────
+    SMTP_HOST: str = "smtp.gmail.com"
+    SMTP_PORT: int = 587
+    SMTP_USER: str = "aibodyanalyzer@gmail.com"
+    SMTP_PASSWORD: str = "tcetimjmjpxzgktq"
+    SMTP_FROM_NAME: str = "AI Body Analyzer"
+    FRONTEND_URL: str = "http://localhost:3000"
+    EMAIL_VERIFY_TOKEN_EXPIRE_HOURS: int = 24
+
     # ── CORS ──────────────────────────────────────────────────
     CORS_ORIGINS: str = "http://localhost:3000"
 

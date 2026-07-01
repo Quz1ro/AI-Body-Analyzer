@@ -49,3 +49,10 @@ def decode_token(token: str) -> dict | None:
         return payload
     except JWTError:
         return None
+
+
+def create_email_verification_token(user_id: UUID) -> str:
+    """Create a JWT token for email verification with configurable expiry."""
+    expire = datetime.now(timezone.utc) + timedelta(hours=settings.EMAIL_VERIFY_TOKEN_EXPIRE_HOURS)
+    payload = {"sub": str(user_id), "exp": expire, "type": "email_verify"}
+    return jwt.encode(payload, settings.JWT_SECRET, algorithm=settings.JWT_ALGORITHM)

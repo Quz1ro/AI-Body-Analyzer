@@ -14,7 +14,7 @@ from app.models.user import User
 from app.models.image import Image
 from app.models.analysis import Analysis
 from app.schemas.analysis import AnalysisResponse, AnalysisSummaryResponse
-from app.core.dependencies import get_current_user
+from app.core.dependencies import get_current_user, get_verified_user
 from pydantic import BaseModel
 from app.services.cv_service import run_pose_analysis
 from app.services.ai_service import analyze_body_with_gemini, generate_recommendations, _calculate_overall_rating
@@ -28,7 +28,7 @@ async def create_analysis(
     image_id: str,
     height: float | None = None,
     weight: float | None = None,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_verified_user),
     db: AsyncSession = Depends(get_db),
 ):
     """Run pose estimation and body analysis on an uploaded image."""

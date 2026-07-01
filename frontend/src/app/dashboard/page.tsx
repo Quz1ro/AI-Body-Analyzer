@@ -7,7 +7,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
-import { listAnalyses } from "@/lib/api";
+import { listAnalyses, resendVerification } from "@/lib/api";
 import type { AnalysisSummary } from "@/types";
 import { BarChartIcon, CameraIcon } from "@/components/ui/Icons";
 
@@ -16,6 +16,8 @@ export default function DashboardPage() {
   const router = useRouter();
   const [analyses, setAnalyses] = useState<AnalysisSummary[]>([]);
   const [loading, setLoading] = useState(true);
+  const [resending, setResending] = useState(false);
+  const [resent, setResent] = useState(false);
 
   useEffect(() => {
     if (authLoading) return;
@@ -29,6 +31,19 @@ export default function DashboardPage() {
       .catch(() => {})
       .finally(() => setLoading(false));
   }, [authLoading, isLoggedIn, router]);
+
+  async function handleResend() {
+    setResending(true);
+    try {
+      await resendVerification();
+      setResent(true);
+      setTimeout(() => setResent(false), 5000);
+    } catch {
+      // silent
+    } finally {
+      setResending(false);
+    }
+  }
 
   if (authLoading || loading) {
     return (
@@ -45,6 +60,45 @@ export default function DashboardPage() {
 
   return (
     <div className="page-container">
+      {/* Email Not Verified Banner */}
+      {user && !user.email_verified && (
+        <div className="animate-in" style={{
+          padding: "16px 20px",
+          marginBottom: "24px",
+          borderRadius: "var(--radius-md, 12px)",
+          background: "linear-gradient(135deg, rgba(251, 191, 36, 0.08), rgba(245, 158, 11, 0.12))",
+          border: "1px solid rgba(251, 191, 36, 0.2)",
+          display: "flex",
+          alignItems: "center",
+          justifyContent: "space-between",
+          gap: "16px",
+          flexWrap: "wrap",
+        }}>
+          <div>
+            <div style={{ fontSize: "14px", fontWeight: 600, color: "#fbbf24", marginBottom: "4px" }}>
+              ⚠ Email не підтверджено
+            </div>
+            <div style={{ fontSize: "13px", color: "var(--text-secondary)" }}>
+              Підтвердіть вашу пошту, щоб завантажувати фото та запускати аналіз
+            </div>
+          </div>
+          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+            {resent ? (
+              <span style={{ fontSize: "13px", color: "var(--accent-teal)" }}>✓ Надіслано</span>
+            ) : (
+              <button
+                className="btn-secondary"
+                onClick={handleResend}
+                disabled={resending}
+                style={{ padding: "8px 16px", fontSize: "13px", whiteSpace: "nowrap" }}
+              >
+                {resending ? "Надсилання..." : "Надіслати лист повторно"}
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+
       {/* Header */}
       <section className="animate-in" style={{ marginBottom: "32px" }}>
         <h1 style={{ fontSize: "28px", fontWeight: 800, letterSpacing: "-0.02em", marginBottom: "8px" }}>

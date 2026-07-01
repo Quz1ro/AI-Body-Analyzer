@@ -1,10 +1,11 @@
 """
-Auth API routes — register, login, refresh token.
+Auth API routes — register, login, refresh token, email verification.
 """
 
+import asyncio
 from uuid import UUID
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, Query, status, BackgroundTasks
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
@@ -16,14 +17,21 @@ from app.core.security import (
     verify_password,
     create_access_token,
     create_refresh_token,
+    create_email_verification_token,
     decode_token,
 )
+from app.core.dependencies import get_current_user
+from app.services.email_service import send_verification_email
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
 
 @router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
-async def register(body: RegisterRequest, db: AsyncSession = Depends(get_db)):
+async def register(
+    body: RegisterRequest,
+    background_tasks: BackgroundTasks,
+    db: AsyncSession = Depends(get_db)
+):
     """Register a new user and return JWT tokens."""
     # Check if email is taken
     existing = await db.execute(select(User).where(User.email == body.email))
@@ -41,9 +49,14 @@ async def register(body: RegisterRequest, db: AsyncSession = Depends(get_db)):
     db.add(user)
     await db.flush()
 
+    # Send verification email (non-blocking via background_tasks)
+    verification_token = create_email_verification_token(user.id)
+    background_tasks.add_task(send_verification_email, body.email, verification_token)
+
     return TokenResponse(
         access_token=create_access_token(user.id),
         refresh_token=create_refresh_token(user.id),
+        email_verified=False,
     )
 
 
@@ -62,6 +75,7 @@ async def login(body: LoginRequest, db: AsyncSession = Depends(get_db)):
     return TokenResponse(
         access_token=create_access_token(user.id),
         refresh_token=create_refresh_token(user.id),
+        email_verified=user.email_verified,
     )
 
 
@@ -84,4 +98,50 @@ async def refresh(body: RefreshRequest, db: AsyncSession = Depends(get_db)):
     return TokenResponse(
         access_token=create_access_token(user.id),
         refresh_token=create_refresh_token(user.id),
+        email_verified=user.email_verified,
     )
+
+
+@router.get("/verify-email")
+async def verify_email(token: str = Query(...), db: AsyncSession = Depends(get_db)):
+    """Verify a user's email using the token from the verification link."""
+    payload = decode_token(token)
+    if payload is None or payload.get("type") != "email_verify":
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Невірне або прострочене посилання для підтвердження",
+        )
+
+    user_id = payload.get("sub")
+    if user_id is None:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Invalid token")
+
+    result = await db.execute(select(User).where(User.id == user_id))
+    user = result.scalar_one_or_none()
+    if not user:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="User not found")
+
+    if user.email_verified:
+        return {"message": "Email вже підтверджено", "already_verified": True}
+
+    user.email_verified = True
+    db.add(user)
+    await db.flush()
+
+    return {"message": "Email успішно підтверджено!", "already_verified": False}
+
+
+@router.post("/resend-verification")
+async def resend_verification(
+    background_tasks: BackgroundTasks,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Resend the verification email for the current user."""
+    if user.email_verified:
+        return {"message": "Email вже підтверджено", "already_verified": True}
+
+    verification_token = create_email_verification_token(user.id)
+    background_tasks.add_task(send_verification_email, user.email, verification_token)
+
+    return {"message": "Лист підтвердження надіслано повторно"}
