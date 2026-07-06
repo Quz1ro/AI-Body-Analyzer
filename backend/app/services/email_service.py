@@ -19,70 +19,117 @@ def _build_verification_html(verify_url: str) -> str:
     return f"""\
 <!DOCTYPE html>
 <html lang="uk">
-<head><meta charset="UTF-8"></head>
-<body style="margin:0;padding:0;background:#0a0a0f;font-family:'Segoe UI',Roboto,sans-serif;">
-  <table width="100%" cellpadding="0" cellspacing="0" style="background:#0a0a0f;padding:40px 20px;">
-    <tr><td align="center">
-      <table width="480" cellpadding="0" cellspacing="0" style="
-        background:linear-gradient(145deg,rgba(30,30,45,0.95),rgba(20,20,35,0.98));
-        border:1px solid rgba(255,255,255,0.06);
-        border-radius:16px;padding:40px;
-      ">
-        <!-- Logo -->
-        <tr><td align="center" style="padding-bottom:24px;">
-          <div style="
-            font-size:28px;font-weight:800;
-            background:linear-gradient(135deg,#00d4aa,#7c3aed,#3b82f6);
-            -webkit-background-clip:text;-webkit-text-fill-color:transparent;
-            background-clip:text;
-          ">AI Body Analyzer</div>
-        </td></tr>
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Підтвердження email</title>
+</head>
+<body style="margin:0;padding:0;background-color:#080c14;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif;-webkit-font-smoothing:antialiased;-moz-osx-font-smoothing:grayscale;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background-color:#080c14;padding:40px 20px;">
+    <tr>
+      <td align="center">
+        <!-- Main Card Container -->
+        <table width="100%" max-width="480" cellpadding="0" cellspacing="0" style="
+          width:100%;
+          max-width:480px;
+          background-color:#131b2e;
+          border-top:4px solid #00d4aa;
+          border-left:1px solid #1f293d;
+          border-right:1px solid #1f293d;
+          border-bottom:1px solid #1f293d;
+          border-radius:12px;
+          box-shadow:0 10px 25px -5px rgba(0,0,0,0.3);
+        ">
+          <tr>
+            <td style="padding:40px 32px;" align="center">
+              
+              <!-- Logo -->
+              <table cellpadding="0" cellspacing="0" style="margin-bottom:24px;">
+                <tr>
+                  <td align="center" style="font-size:24px;font-weight:800;color:#ffffff;letter-spacing:-0.02em;">
+                    AI <span style="color:#00d4aa;">Body Analyzer</span>
+                  </td>
+                </tr>
+              </table>
 
-        <!-- Title -->
-        <tr><td align="center" style="padding-bottom:16px;">
-          <h1 style="color:#ffffff;font-size:22px;font-weight:700;margin:0;">
-            Підтвердження email
-          </h1>
-        </td></tr>
+              <!-- Title -->
+              <table cellpadding="0" cellspacing="0" style="margin-bottom:16px;">
+                <tr>
+                  <td align="center">
+                    <h1 style="color:#ffffff;font-size:22px;font-weight:700;margin:0;letter-spacing:-0.01em;">
+                      Підтвердження email
+                    </h1>
+                  </td>
+                </tr>
+              </table>
 
-        <!-- Text -->
-        <tr><td align="center" style="padding-bottom:32px;">
-          <p style="color:#a0a0b8;font-size:14px;line-height:1.6;margin:0;">
-            Дякуємо за реєстрацію! Натисніть кнопку нижче, щоб підтвердити
-            вашу електронну пошту та отримати доступ до всіх функцій.
-          </p>
-        </td></tr>
+              <!-- Text -->
+              <table cellpadding="0" cellspacing="0" style="margin-bottom:28px;">
+                <tr>
+                  <td align="center">
+                    <p style="color:#94a3b8;font-size:14px;line-height:1.6;margin:0;">
+                      Дякуємо за реєстрацію! Натисніть кнопку нижче, щоб підтвердити
+                      вашу електронну пошту та отримати доступ до всіх функцій додатку.
+                    </p>
+                  </td>
+                </tr>
+              </table>
 
-        <!-- Button -->
-        <tr><td align="center" style="padding-bottom:32px;">
-          <a href="{verify_url}" style="
-            display:inline-block;padding:14px 40px;
-            background:linear-gradient(135deg,#00d4aa,#7c3aed);
-            color:#ffffff;font-size:15px;font-weight:700;
-            text-decoration:none;border-radius:10px;
-            box-shadow:0 4px 20px rgba(0,212,170,0.3);
-          ">Підтвердити email</a>
-        </td></tr>
+              <!-- Button -->
+              <table cellpadding="0" cellspacing="0" style="margin-bottom:28px;">
+                <tr>
+                  <td align="center">
+                    <a href="{verify_url}" style="
+                      display:inline-block;
+                      background-color:#00d4aa;
+                      color:#080c14;
+                      font-size:15px;
+                      font-weight:700;
+                      text-decoration:none;
+                      padding:14px 36px;
+                      border-radius:8px;
+                      box-shadow:0 4px 12px rgba(0,212,170,0.25);
+                    ">Підтвердити email</a>
+                  </td>
+                </tr>
+              </table>
 
-        <!-- Alt link -->
-        <tr><td align="center" style="padding-bottom:24px;">
-          <p style="color:#6b6b80;font-size:12px;margin:0;">
-            Або скопіюйте посилання:<br>
-            <a href="{verify_url}" style="color:#7c3aed;word-break:break-all;font-size:11px;">
-              {verify_url}
-            </a>
-          </p>
-        </td></tr>
+              <!-- Alt Link Block -->
+              <table width="100%" cellpadding="0" cellspacing="0" style="
+                background-color:#0f172a;
+                border:1px solid #1e293b;
+                border-radius:8px;
+                margin-bottom:24px;
+              ">
+                <tr>
+                  <td style="padding:16px;" align="center">
+                    <p style="color:#64748b;font-size:12px;margin:0 0 8px 0;line-height:1.4;">
+                      Якщо кнопка не працює, скопіюйте це посилання:
+                    </p>
+                    <a href="{verify_url}" style="color:#38bdf8;word-break:break-all;font-size:11px;text-decoration:underline;">
+                      {verify_url}
+                    </a>
+                  </td>
+                </tr>
+              </table>
 
-        <!-- Expiry notice -->
-        <tr><td align="center">
-          <p style="color:#4a4a5e;font-size:11px;margin:0;">
-            Посилання дійсне протягом {settings.EMAIL_VERIFY_TOKEN_EXPIRE_HOURS} годин.
-            Якщо ви не реєструвалися — проігноруйте цей лист.
-          </p>
-        </td></tr>
-      </table>
-    </td></tr>
+              <!-- Expiry notice -->
+              <table cellpadding="0" cellspacing="0">
+                <tr>
+                  <td align="center">
+                    <p style="color:#64748b;font-size:11px;margin:0;line-height:1.5;">
+                      Посилання дійсне протягом {settings.EMAIL_VERIFY_TOKEN_EXPIRE_HOURS} годин.<br>
+                      Якщо ви не реєструвалися — просто проігноруйте цей лист.
+                    </p>
+                  </td>
+                </tr>
+              </table>
+
+            </td>
+          </tr>
+        </table>
+      </td>
+    </tr>
   </table>
 </body>
 </html>"""
