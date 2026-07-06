@@ -3,6 +3,7 @@ Auth API routes — register, login, refresh token, email verification.
 """
 
 import asyncio
+from datetime import datetime, timezone
 from uuid import UUID
 
 from fastapi import APIRouter, Depends, HTTPException, Query, status, BackgroundTasks
@@ -25,6 +26,9 @@ from app.services.email_service import send_verification_email
 
 router = APIRouter(prefix="/api/auth", tags=["auth"])
 
+# Rate limit for resend verification (seconds)
+RESEND_COOLDOWN_SECONDS = 60
+
 
 @router.post("/register", response_model=TokenResponse, status_code=status.HTTP_201_CREATED)
 async def register(
@@ -45,6 +49,7 @@ async def register(
         name=body.name,
         email=body.email,
         password_hash=hash_password(body.password),
+        last_verification_sent_at=datetime.now(timezone.utc),
     )
     db.add(user)
     await db.flush()
@@ -137,11 +142,41 @@ async def resend_verification(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_db),
 ):
-    """Resend the verification email for the current user."""
+    """Resend the verification email for the current user with rate-limiting."""
     if user.email_verified:
         return {"message": "Email вже підтверджено", "already_verified": True}
+
+    # Rate-limiting: check cooldown
+    now = datetime.now(timezone.utc)
+    if user.last_verification_sent_at:
+        last_sent = user.last_verification_sent_at
+        if last_sent.tzinfo is None:
+            last_sent = last_sent.replace(tzinfo=timezone.utc)
+        elapsed = (now - last_sent).total_seconds()
+        if elapsed < RESEND_COOLDOWN_SECONDS:
+            remaining = int(RESEND_COOLDOWN_SECONDS - elapsed)
+            raise HTTPException(
+                status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+                detail=f"Зачекайте {remaining} секунд перед повторним надсиланням",
+            )
+
+    # Update timestamp
+    user.last_verification_sent_at = now
+    db.add(user)
+    await db.flush()
 
     verification_token = create_email_verification_token(user.id)
     background_tasks.add_task(send_verification_email, user.email, verification_token)
 
     return {"message": "Лист підтвердження надіслано повторно"}
+
+
+@router.get("/verification-status")
+async def verification_status(
+    user: User = Depends(get_current_user),
+):
+    """Check the current email verification status for the authenticated user."""
+    return {
+        "email_verified": user.email_verified,
+        "email": user.email,
+    }

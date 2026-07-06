@@ -12,6 +12,7 @@ interface AuthContextType {
   user: User | null;
   loading: boolean;
   isLoggedIn: boolean;
+  emailVerified: boolean;
   refresh: () => Promise<void>;
   logout: () => void;
 }
@@ -20,6 +21,7 @@ const AuthContext = createContext<AuthContextType>({
   user: null,
   loading: true,
   isLoggedIn: false,
+  emailVerified: false,
   refresh: async () => {},
   logout: () => {},
 });
@@ -55,7 +57,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [refresh]);
 
   return (
-    <AuthContext.Provider value={{ user, loading, isLoggedIn: !!user, refresh, logout }}>
+    <AuthContext.Provider value={{
+      user,
+      loading,
+      isLoggedIn: !!user,
+      emailVerified: !!user?.email_verified,
+      refresh,
+      logout,
+    }}>
       {children}
     </AuthContext.Provider>
   );

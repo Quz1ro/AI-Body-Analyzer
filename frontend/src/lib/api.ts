@@ -88,6 +88,16 @@ async function apiFetch<T>(
     throw new ApiError(401, "Session expired");
   }
 
+  // Redirect unverified users to verify-pending page
+  if (res.status === 403 && !path.startsWith("/api/auth/")) {
+    const body = await res.json().catch(() => ({ detail: "" }));
+    if (body.detail && body.detail.includes("Email not verified")) {
+      window.location.href = "/auth/verify-pending";
+      throw new ApiError(403, "Email not verified");
+    }
+    throw new ApiError(res.status, body.detail || "Forbidden");
+  }
+
   if (!res.ok) {
     const body = await res.json().catch(() => ({ detail: "Unknown error" }));
     throw new ApiError(res.status, body.detail || JSON.stringify(body));
@@ -151,6 +161,10 @@ export async function resendVerification(): Promise<{ message: string }> {
   return apiFetch<{ message: string }>("/api/auth/resend-verification", {
     method: "POST",
   });
+}
+
+export async function checkVerificationStatus(): Promise<{ email_verified: boolean; email: string }> {
+  return apiFetch<{ email_verified: boolean; email: string }>("/api/auth/verification-status");
 }
 
 // ── User API ────────────────────────────────────────────────

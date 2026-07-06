@@ -10,8 +10,9 @@ import { useAuth } from "@/hooks/useAuth";
 import { getAnalysis, getImageUrl, updateAnalysisMetrics, API_URL } from "@/lib/api";
 import type { Analysis } from "@/types";
 import { XCircleIcon, CameraIcon, EditIcon, SaveIcon, DnaIcon, RulerIcon, CompassIcon, FlameIcon, ZapIcon, DumbbellIcon, BodyIcon, ShoulderIcon, ShieldIcon, LegIcon, FileTextIcon, MessageCircleIcon, PercentIcon } from "@/components/ui/Icons";
+import AuthGuard from "@/components/layout/AuthGuard";
 
-export default function AnalysisDetailPage({ params }: { params: Promise<{ id: string }> }) {
+function AnalysisDetailContent({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const { isLoggedIn, loading: authLoading } = useAuth();
   const router = useRouter();
@@ -95,10 +96,7 @@ export default function AnalysisDetailPage({ params }: { params: Promise<{ id: s
 
   useEffect(() => {
     if (authLoading) return;
-    if (!isLoggedIn) {
-      router.push("/auth/login");
-      return;
-    }
+    if (!isLoggedIn) return; // AuthGuard handles redirect
 
     getAnalysis(id)
       .then(setAnalysis)
@@ -924,5 +922,13 @@ export default function AnalysisDetailPage({ params }: { params: Promise<{ id: s
         </div>
       </div>
     </div>
+  );
+}
+
+export default function AnalysisDetailPage({ params }: { params: Promise<{ id: string }> }) {
+  return (
+    <AuthGuard>
+      <AnalysisDetailContent params={params} />
+    </AuthGuard>
   );
 }

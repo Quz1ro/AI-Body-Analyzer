@@ -4,16 +4,16 @@
 
 "use client";
 
-import { useState, useRef, useCallback } from "react";
+import { useState, useRef, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
-import { uploadImage, createAnalysis, getImageUrl, resendVerification } from "@/lib/api";
+import { uploadImage, createAnalysis, getImageUrl } from "@/lib/api";
 import type { Analysis } from "@/types";
 import { UploadIcon, ScanIcon, RulerIcon, ScaleIcon, CompassIcon, DumbbellIcon, AlertTriangleIcon, ZapIcon, CheckIcon, XCircleIcon } from "@/components/ui/Icons";
 import TicTacToe from "@/components/ui/TicTacToe";
 
 export default function HomePage() {
-  const { user, loading, isLoggedIn } = useAuth();
+  const { user, loading, isLoggedIn, emailVerified } = useAuth();
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -26,33 +26,18 @@ export default function HomePage() {
   const [analysis, setAnalysis] = useState<Analysis | null>(null);
   const [height, setHeight] = useState<string>("");
   const [weight, setWeight] = useState<string>("");
-  const [resending, setResending] = useState(false);
-  const [resent, setResent] = useState(false);
 
-  const isUnverified = isLoggedIn && user && !user.email_verified;
-
-  async function handleResend() {
-    setResending(true);
-    try {
-      await resendVerification();
-      setResent(true);
-      setTimeout(() => setResent(false), 5000);
-    } catch {
-      // silent
-    } finally {
-      setResending(false);
+  // Redirect logged-in but unverified users to verify-pending
+  useEffect(() => {
+    if (!loading && isLoggedIn && !emailVerified) {
+      router.push("/auth/verify-pending");
     }
-  }
+  }, [loading, isLoggedIn, emailVerified, router]);
 
   const handleFile = useCallback(
     async (file: File) => {
       if (!isLoggedIn) {
         router.push("/auth/login");
-        return;
-      }
-
-      if (isUnverified) {
-        setStatus("Підтвердіть вашу електронну пошту, щоб завантажувати фото.");
         return;
       }
 
@@ -126,7 +111,7 @@ export default function HomePage() {
         setStatus(`Помилка: ${err.message}`);
       }
     },
-    [isLoggedIn, isUnverified, router, height, weight]
+    [isLoggedIn, router, height, weight]
   );
 
   const handleDrop = useCallback(
@@ -148,44 +133,6 @@ export default function HomePage() {
 
   return (
     <div className="page-container">
-      {/* Email Not Verified Banner */}
-      {isUnverified && (
-        <div className="animate-in" style={{
-          padding: "16px 20px",
-          marginBottom: "24px",
-          borderRadius: "var(--radius-md, 12px)",
-          background: "linear-gradient(135deg, rgba(251, 191, 36, 0.08), rgba(245, 158, 11, 0.12))",
-          border: "1px solid rgba(251, 191, 36, 0.2)",
-          display: "flex",
-          alignItems: "center",
-          justifyContent: "space-between",
-          gap: "16px",
-          flexWrap: "wrap",
-        }}>
-          <div>
-            <div style={{ fontSize: "14px", fontWeight: 600, color: "#fbbf24", marginBottom: "4px" }}>
-              ⚠ Email не підтверджено
-            </div>
-            <div style={{ fontSize: "13px", color: "var(--text-secondary)" }}>
-              Підтвердіть вашу пошту, щоб завантажувати фото та запускати аналіз
-            </div>
-          </div>
-          <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
-            {resent ? (
-              <span style={{ fontSize: "13px", color: "var(--accent-teal)" }}>✓ Надіслано</span>
-            ) : (
-              <button
-                className="btn-secondary"
-                onClick={handleResend}
-                disabled={resending}
-                style={{ padding: "8px 16px", fontSize: "13px", whiteSpace: "nowrap" }}
-              >
-                {resending ? "Надсилання..." : "Надіслати лист повторно"}
-              </button>
-            )}
-          </div>
-        </div>
-      )}
 
       {/* Hero Section */}
       <section className="animate-in" style={{ marginBottom: "40px" }}>

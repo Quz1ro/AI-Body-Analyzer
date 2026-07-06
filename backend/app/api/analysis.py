@@ -14,7 +14,7 @@ from app.models.user import User
 from app.models.image import Image
 from app.models.analysis import Analysis
 from app.schemas.analysis import AnalysisResponse, AnalysisSummaryResponse
-from app.core.dependencies import get_current_user, get_verified_user
+from app.core.dependencies import get_verified_user
 from pydantic import BaseModel
 from app.services.cv_service import run_pose_analysis
 from app.services.ai_service import analyze_body_with_gemini, generate_recommendations, _calculate_overall_rating
@@ -106,7 +106,7 @@ async def create_analysis(
 
 @router.get("", response_model=list[AnalysisSummaryResponse])
 async def list_analyses(
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_verified_user),
     db: AsyncSession = Depends(get_db),
 ):
     """List all analyses for the current user (lightweight summaries)."""
@@ -121,7 +121,7 @@ async def list_analyses(
 @router.get("/{analysis_id}", response_model=AnalysisResponse)
 async def get_analysis(
     analysis_id: str,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_verified_user),
     db: AsyncSession = Depends(get_db),
 ):
     """Get a single analysis with full details and recommendations."""
@@ -148,7 +148,7 @@ class RecalculateRequest(BaseModel):
 async def recalculate_analysis(
     analysis_id: str,
     body: RecalculateRequest,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_verified_user),
     db: AsyncSession = Depends(get_db),
 ):
     """Update coordinates manually, run pose estimation & update Gemini analysis."""
@@ -241,7 +241,7 @@ class UpdateMetricsRequest(BaseModel):
 async def update_analysis_metrics(
     analysis_id: str,
     body: UpdateMetricsRequest,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_verified_user),
     db: AsyncSession = Depends(get_db),
 ):
     """Update user's height and weight for an analysis."""

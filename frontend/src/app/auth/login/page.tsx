@@ -25,9 +25,14 @@ export default function LoginPage() {
     setLoading(true);
 
     try {
-      await login({ email, password });
+      const tokens = await login({ email, password });
       await refresh();
-      router.push("/");
+      // Redirect based on email verification status
+      if (tokens.email_verified) {
+        router.push("/");
+      } else {
+        router.push("/auth/verify-pending");
+      }
     } catch (err: any) {
       setError(err.message || "Помилка входу");
     } finally {

@@ -5,6 +5,7 @@ Uses Python's standard smtplib (no extra dependencies).
 
 import smtplib
 import logging
+import time
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 
@@ -92,6 +93,8 @@ def send_verification_email(to_email: str, token: str) -> bool:
     Send a verification email via Gmail SMTP.
     Returns True on success, False on failure.
     If SMTP credentials are not configured, logs the verification URL instead.
+    Includes a delay before sending to avoid Gmail rate-limiting,
+    and retry logic with exponential backoff (up to 3 attempts).
     """
     verify_url = f"{settings.FRONTEND_URL}/auth/verify-email?token={token}"
 
@@ -118,15 +121,32 @@ def send_verification_email(to_email: str, token: str) -> bool:
     msg.attach(MIMEText(text_body, "plain", "utf-8"))
     msg.attach(MIMEText(_build_verification_html(verify_url), "html", "utf-8"))
 
-    try:
-        with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT, timeout=10) as server:
-            server.ehlo()
-            server.starttls()
-            server.ehlo()
-            server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
-            server.sendmail(settings.SMTP_USER, to_email, msg.as_string())
-        logger.info("Verification email sent to %s", to_email)
-        return True
-    except Exception as e:
-        logger.error("Failed to send verification email to %s: %s", to_email, e)
-        return False
+    max_retries = 3
+    for attempt in range(1, max_retries + 1):
+        # Delay before sending to avoid Gmail SMTP rate-limiting
+        delay = 2 * attempt  # 2s, 4s, 6s
+        logger.info(
+            "Attempt %d/%d: waiting %ds before sending to %s",
+            attempt, max_retries, delay, to_email,
+        )
+        time.sleep(delay)
+
+        try:
+            with smtplib.SMTP(settings.SMTP_HOST, settings.SMTP_PORT, timeout=15) as server:
+                server.ehlo()
+                server.starttls()
+                server.ehlo()
+                server.login(settings.SMTP_USER, settings.SMTP_PASSWORD)
+                server.sendmail(settings.SMTP_USER, to_email, msg.as_string())
+            logger.info("Verification email sent to %s (attempt %d)", to_email, attempt)
+            return True
+        except Exception as e:
+            logger.error(
+                "Failed to send verification email to %s (attempt %d/%d): %s",
+                to_email, attempt, max_retries, e,
+            )
+            if attempt == max_retries:
+                return False
+            # Continue to next retry with increased delay
+
+    return False

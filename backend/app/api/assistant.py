@@ -13,7 +13,7 @@ from app.models.user import User
 from app.models.analysis import Analysis
 from app.models.chat_message import ChatMessage
 from app.schemas.chat import ChatRequest, ChatResponse, ChatMessageResponse
-from app.core.dependencies import get_current_user
+from app.core.dependencies import get_verified_user
 from fastapi.responses import StreamingResponse
 from app.services.ai_service import generate_chat_reply, stream_chat_reply
 
@@ -23,7 +23,7 @@ router = APIRouter(prefix="/api/assistant", tags=["assistant"])
 @router.post("/chat", response_model=ChatResponse)
 async def chat(
     body: ChatRequest,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_verified_user),
     db: AsyncSession = Depends(get_db),
 ):
     """Send a message to the AI assistant and get a response."""
@@ -87,7 +87,7 @@ async def chat(
 @router.post("/chat/stream")
 async def chat_stream(
     body: ChatRequest,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_verified_user),
     db: AsyncSession = Depends(get_db),
 ):
     """Send a message to the AI assistant and stream the response in real-time."""
@@ -164,7 +164,7 @@ async def chat_stream(
 async def get_history(
     analysis_id: str | None = None,
     limit: int = 50,
-    user: User = Depends(get_current_user),
+    user: User = Depends(get_verified_user),
     db: AsyncSession = Depends(get_db),
 ):
     """Get the chat history for the current user, optionally filtered by analysis context."""

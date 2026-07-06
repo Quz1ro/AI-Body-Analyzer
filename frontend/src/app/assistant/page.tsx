@@ -10,6 +10,7 @@ import { useAuth } from "@/hooks/useAuth";
 import { sendChatMessage, getChatHistory, listAnalyses, getAnalysis, getImageUrl, API_URL } from "@/lib/api";
 import type { ChatMessage, AnalysisSummary, Analysis } from "@/types";
 import { MessageCircleIcon, SearchIcon, AlertTriangleIcon } from "@/components/ui/Icons";
+import AuthGuard from "@/components/layout/AuthGuard";
 
 // Helper to format simple markdown elements: bold, headers, lists
 function formatMessageContent(content: string) {
@@ -67,7 +68,7 @@ function formatMessageContent(content: string) {
   });
 }
 
-export default function AssistantPage() {
+function AssistantContent() {
   const { user, loading: authLoading, isLoggedIn } = useAuth();
   const router = useRouter();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
@@ -79,10 +80,7 @@ export default function AssistantPage() {
 
   useEffect(() => {
     if (authLoading) return;
-    if (!isLoggedIn) {
-      router.push("/auth/login");
-      return;
-    }
+    if (!isLoggedIn) return; // AuthGuard handles redirect
 
     listAnalyses()
       .then((analyses) => {
@@ -430,5 +428,13 @@ export default function AssistantPage() {
         </button>
       </form>
     </div>
+  );
+}
+
+export default function AssistantPage() {
+  return (
+    <AuthGuard>
+      <AssistantContent />
+    </AuthGuard>
   );
 }
