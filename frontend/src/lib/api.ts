@@ -14,6 +14,7 @@ import type {
   ChatRequest,
   ChatResponse,
   ChatMessage,
+  ScanLimit,
 } from "@/types";
 
 export const API_URL = typeof window !== "undefined" ? "" : (process.env.NEXT_PUBLIC_API_URL || "http://127.0.0.1:8000");
@@ -227,6 +228,10 @@ export async function updateAnalysisMetrics(id: string, height?: number, weight?
     method: "PATCH",
     body: JSON.stringify({ height, weight }),
   });
+}
+
+export async function getScanLimit(): Promise<ScanLimit> {
+  return apiFetch<ScanLimit>("/api/analysis/scan-limit");
 }
 
 // ── Assistant API ───────────────────────────────────────────

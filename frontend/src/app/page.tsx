@@ -7,8 +7,8 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
-import { uploadImage, createAnalysis, getImageUrl } from "@/lib/api";
-import type { Analysis } from "@/types";
+import { uploadImage, createAnalysis, getImageUrl, getScanLimit } from "@/lib/api";
+import type { Analysis, ScanLimit } from "@/types";
 import { UploadIcon, ScanIcon, RulerIcon, ScaleIcon, CompassIcon, DumbbellIcon, AlertTriangleIcon, ZapIcon, CheckIcon, XCircleIcon } from "@/components/ui/Icons";
 import TicTacToe from "@/components/ui/TicTacToe";
 
@@ -26,6 +26,16 @@ export default function HomePage() {
   const [analysis, setAnalysis] = useState<Analysis | null>(null);
   const [height, setHeight] = useState<string>("");
   const [weight, setWeight] = useState<string>("");
+  const [scanLimit, setScanLimit] = useState<ScanLimit | null>(null);
+
+  // Fetch scan limit on load
+  useEffect(() => {
+    if (isLoggedIn && emailVerified) {
+      getScanLimit()
+        .then(setScanLimit)
+        .catch(() => {});
+    }
+  }, [isLoggedIn, emailVerified]);
 
   // Redirect logged-in but unverified users to verify-pending
   useEffect(() => {
@@ -38,6 +48,12 @@ export default function HomePage() {
     async (file: File) => {
       if (!isLoggedIn) {
         router.push("/auth/login");
+        return;
+      }
+
+      // Check scan limit before uploading
+      if (scanLimit && scanLimit.remaining <= 0) {
+        setStatus("Денний ліміт сканувань вичерпано. Спробуйте завтра.");
         return;
       }
 
@@ -99,6 +115,9 @@ export default function HomePage() {
         setProgress(100);
         setProgressMessage("Готово! Перенаправлення до результатів...");
         
+        // Update scan limit after successful analysis
+        getScanLimit().then(setScanLimit).catch(() => {});
+        
         // Slight delay for smooth visual transition
         setTimeout(() => {
           router.push(`/analysis/${result.id}`);
@@ -108,10 +127,15 @@ export default function HomePage() {
         setProgress(0);
         setProgressMessage("");
         setProcessing(false);
+        
+        // Handle 429 specifically for better UX
+        if (err.status === 429) {
+          getScanLimit().then(setScanLimit).catch(() => {});
+        }
         setStatus(`Помилка: ${err.message}`);
       }
     },
-    [isLoggedIn, router, height, weight]
+    [isLoggedIn, router, height, weight, scanLimit]
   );
 
   const handleDrop = useCallback(
@@ -150,6 +174,53 @@ export default function HomePage() {
           Завантажте фото в повний зріст — система визначить ключові точки тіла,
           обчислить пропорції, симетрію та поставу.
         </p>
+
+        {/* Scan Limit Indicator */}
+        {isLoggedIn && scanLimit && (
+          <div style={{
+            display: "inline-flex",
+            alignItems: "center",
+            gap: "10px",
+            marginTop: "16px",
+            padding: "10px 18px",
+            borderRadius: "var(--radius-lg)",
+            background: scanLimit.remaining > 0
+              ? "rgba(45, 212, 191, 0.08)"
+              : "rgba(239, 68, 68, 0.08)",
+            border: `1px solid ${scanLimit.remaining > 0 ? "rgba(45, 212, 191, 0.2)" : "rgba(239, 68, 68, 0.2)"}`,
+          }}>
+            <div style={{
+              display: "flex",
+              gap: "4px",
+            }}>
+              {Array.from({ length: scanLimit.limit }, (_, i) => (
+                <div
+                  key={i}
+                  style={{
+                    width: "10px",
+                    height: "10px",
+                    borderRadius: "50%",
+                    background: i < scanLimit.used
+                      ? "var(--text-muted)"
+                      : "var(--accent-teal)",
+                    opacity: i < scanLimit.used ? 0.3 : 1,
+                    boxShadow: i < scanLimit.used ? "none" : "0 0 6px rgba(45, 212, 191, 0.4)",
+                    transition: "all 0.3s ease",
+                  }}
+                />
+              ))}
+            </div>
+            <span style={{
+              fontSize: "13px",
+              fontWeight: 600,
+              color: scanLimit.remaining > 0 ? "var(--accent-teal)" : "var(--accent-red)",
+            }}>
+              {scanLimit.remaining > 0
+                ? `${scanLimit.remaining} з ${scanLimit.limit} сканувань залишилось сьогодні`
+                : "Ліміт вичерпано — спробуйте завтра"}
+            </span>
+          </div>
+        )}
       </section>
 
       {/* Optional Height/Weight Inputs */}
@@ -251,12 +322,30 @@ export default function HomePage() {
           </div>
         ) : (
           <div
-            className={`dropzone ${dragOver ? "dragover" : ""}`}
-            onClick={() => !processing && fileInputRef.current?.click()}
-            onDragOver={(e) => { e.preventDefault(); setDragOver(true); }}
+            className={`dropzone ${dragOver ? "dragover" : ""} ${isLoggedIn && scanLimit && scanLimit.remaining <= 0 ? "dropzone-disabled" : ""}`}
+            onClick={() => {
+              if (processing) return;
+              if (scanLimit && scanLimit.remaining <= 0) {
+                setStatus("Денний ліміт сканувань вичерпано. Спробуйте завтра.");
+                return;
+              }
+              fileInputRef.current?.click();
+            }}
+            onDragOver={(e) => { e.preventDefault(); if (!(scanLimit && scanLimit.remaining <= 0)) setDragOver(true); }}
             onDragLeave={() => setDragOver(false)}
-            onDrop={handleDrop}
-            style={{ opacity: processing ? 0.6 : 1, pointerEvents: processing ? "none" : "auto" }}
+            onDrop={(e) => {
+              if (scanLimit && scanLimit.remaining <= 0) {
+                e.preventDefault();
+                setStatus("Денний ліміт сканувань вичерпано. Спробуйте завтра.");
+                return;
+              }
+              handleDrop(e);
+            }}
+            style={{
+              opacity: processing || (isLoggedIn && scanLimit && scanLimit.remaining <= 0) ? 0.5 : 1,
+              pointerEvents: processing ? "none" : "auto",
+              cursor: isLoggedIn && scanLimit && scanLimit.remaining <= 0 ? "not-allowed" : "pointer",
+            }}
           >
             <input
               ref={fileInputRef}

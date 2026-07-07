@@ -166,3 +166,12 @@ export interface ChatResponse {
   reply: string;
   message_id: string;
 }
+
+// ── Scan Limit ──────────────────────────────────────────────
+
+export interface ScanLimit {
+  used: number;
+  limit: number;
+  remaining: number;
+  resets_in_seconds: number;
+}

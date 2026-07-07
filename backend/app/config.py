@@ -36,6 +36,9 @@ class Settings(BaseSettings):
     FRONTEND_URL: str = "http://localhost:3000"
     EMAIL_VERIFY_TOKEN_EXPIRE_HOURS: int = 24
 
+    # ── Scan Limits ──────────────────────────────────────────
+    DAILY_SCAN_LIMIT: int = 3
+
     # ── CORS ──────────────────────────────────────────────────
     CORS_ORIGINS: str = "http://localhost:3000"
 

@@ -3,9 +3,10 @@ Analysis API routes — trigger analysis, get results, list history.
 """
 
 import uuid
+from datetime import datetime, timezone, timedelta
 
 from fastapi import APIRouter, Depends, HTTPException, status
-from sqlalchemy import select
+from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import selectinload
 
@@ -19,8 +20,38 @@ from pydantic import BaseModel
 from app.services.cv_service import run_pose_analysis
 from app.services.ai_service import analyze_body_with_gemini, generate_recommendations, _calculate_overall_rating
 from app.models.recommendation import Recommendation
+from app.config import settings
 
 router = APIRouter(prefix="/api/analysis", tags=["analysis"])
+
+
+async def _get_today_scan_count(user_id: str, db: AsyncSession) -> int:
+    """Count how many analyses the user has created today (UTC)."""
+    today_start = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+    result = await db.execute(
+        select(func.count(Analysis.id))
+        .where(Analysis.user_id == user_id, Analysis.created_at >= today_start)
+    )
+    return result.scalar() or 0
+
+
+@router.get("/scan-limit")
+async def get_scan_limit(
+    user: User = Depends(get_verified_user),
+    db: AsyncSession = Depends(get_db),
+):
+    """Return the user's daily scan usage and limit."""
+    used = await _get_today_scan_count(user.id, db)
+    limit = settings.DAILY_SCAN_LIMIT
+    now = datetime.now(timezone.utc)
+    tomorrow = (now + timedelta(days=1)).replace(hour=0, minute=0, second=0, microsecond=0)
+    reset_seconds = int((tomorrow - now).total_seconds())
+    return {
+        "used": used,
+        "limit": limit,
+        "remaining": max(0, limit - used),
+        "resets_in_seconds": reset_seconds,
+    }
 
 
 @router.post("", response_model=AnalysisResponse, status_code=status.HTTP_201_CREATED)
@@ -32,6 +63,14 @@ async def create_analysis(
     db: AsyncSession = Depends(get_db),
 ):
     """Run pose estimation and body analysis on an uploaded image."""
+    # ── Daily scan limit check ───────────────────────────────
+    used_today = await _get_today_scan_count(user.id, db)
+    if used_today >= settings.DAILY_SCAN_LIMIT:
+        raise HTTPException(
+            status_code=status.HTTP_429_TOO_MANY_REQUESTS,
+            detail=f"Денний ліміт сканувань вичерпано ({settings.DAILY_SCAN_LIMIT}/{settings.DAILY_SCAN_LIMIT}). Спробуйте завтра.",
+        )
+
     # Verify image belongs to user
     result = await db.execute(select(Image).where(Image.id == image_id, Image.user_id == user.id))
     image = result.scalar_one_or_none()
