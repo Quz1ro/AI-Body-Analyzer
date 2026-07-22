@@ -77,7 +77,6 @@ AI Body Analyzer/
 ```bash
 cd "AI Body Analyzer"
 cp .env.example .env
-# Відредагуйте .env або створіть gemini_keys.txt для роботи AI-чату
 ```
 
 ### 2. Запуск через Docker Compose
