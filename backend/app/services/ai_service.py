@@ -130,7 +130,7 @@ async def _stream_openai(messages: list[dict]):
 
 
 async def _stream_gemini(messages: list[dict]):
-    """Stream Google Gemini API."""
+    """Stream Google Gemini API using Server-Sent Events (SSE)."""
     contents = []
     system_prompt = ""
     for msg in messages:
@@ -165,50 +165,30 @@ async def _stream_gemini(messages: list[dict]):
         if not api_key:
             continue
         for model in models_to_try:
-            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:streamGenerateContent?key={api_key}"
+            # alt=sse enables Server-Sent Events for true real-time streaming
+            url = f"https://generativelanguage.googleapis.com/v1beta/models/{model}:streamGenerateContent?key={api_key}&alt=sse"
             try:
-                async with httpx.AsyncClient(timeout=45.0) as client:
+                async with httpx.AsyncClient(timeout=60.0) as client:
                     async with client.stream("POST", url, json=payload) as response:
                         if response.status_code == 200:
                             buffer = ""
-                            brace_count = 0
-                            in_string = False
-                            escape = False
-                            
                             async for chunk in response.aiter_text():
-                                for char in chunk:
-                                    if in_string:
-                                        if escape:
-                                            escape = False
-                                        elif char == "\\":
-                                            escape = True
-                                        elif char == '"':
-                                            in_string = False
-                                    else:
-                                        if char == '"':
-                                            in_string = True
-                                        elif char == '{':
-                                            brace_count += 1
-                                        elif char == '}':
-                                            brace_count -= 1
-                                            
-                                    buffer += char
-                                    
-                                    if brace_count == 0 and buffer.strip() and '{' in buffer:
+                                buffer += chunk
+                                # Process complete SSE lines
+                                while "\n" in buffer:
+                                    line, buffer = buffer.split("\n", 1)
+                                    line = line.strip()
+                                    if line.startswith("data: "):
+                                        json_str = line[6:]  # Remove "data: " prefix
                                         try:
-                                            start = buffer.find('{')
-                                            json_str = buffer[start:]
                                             data = json.loads(json_str)
                                             candidates = data.get("candidates", [])
                                             if candidates:
                                                 text = candidates[0].get("content", {}).get("parts", [{}])[0].get("text", "")
                                                 if text:
                                                     yield text
-                                        except Exception as parse_err:
-                                            logger.error(f"Error parsing Gemini stream chunk: {parse_err}")
-                                        buffer = ""
-                                        in_string = False
-                                        escape = False
+                                        except json.JSONDecodeError as parse_err:
+                                            logger.debug(f"Skipping unparseable SSE chunk: {parse_err}")
                             return  # Success
                         else:
                             err_content = await response.aread()

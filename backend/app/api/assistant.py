@@ -157,7 +157,14 @@ async def chat_stream(
                     local_db.add(assistant_msg)
                     await local_db.commit()
 
-    return StreamingResponse(event_generator(), media_type="text/plain")
+    return StreamingResponse(
+        event_generator(),
+        media_type="text/plain",
+        headers={
+            "Cache-Control": "no-cache",
+            "X-Accel-Buffering": "no",
+        },
+    )
 
 
 @router.get("/history", response_model=list[ChatMessageResponse])
