@@ -422,10 +422,19 @@ export default function HomePage() {
                 </div>
                 <div className="stat-card">
                   <div className="stat-label">Симетрія ніг</div>
-                  <div className="stat-value" style={{ color: analysis.proportions.leg_symmetry >= 95 ? "var(--accent-green)" : "var(--accent-amber)" }}>
-                    {analysis.proportions.leg_symmetry?.toFixed(1)}%
-                  </div>
-                  <div className="stat-caption">100% = ідеальна симетрія</div>
+                  {analysis.gemini_analysis?.photo_type === "torso_only" || (analysis.proportions.leg_symmetry ?? 0) <= 0 ? (
+                    <>
+                      <div className="stat-value" style={{ color: "var(--text-muted)", fontSize: "20px" }}>N/A</div>
+                      <div className="stat-caption">Ноги не видно в кадрі</div>
+                    </>
+                  ) : (
+                    <>
+                      <div className="stat-value" style={{ color: analysis.proportions.leg_symmetry >= 95 ? "var(--accent-green)" : "var(--accent-amber)" }}>
+                        {analysis.proportions.leg_symmetry?.toFixed(1)}%
+                      </div>
+                      <div className="stat-caption">100% = ідеальна симетрія</div>
+                    </>
+                  )}
                 </div>
                 <div className="stat-card">
                   <div className="stat-label">Нахил плечей</div>

@@ -183,7 +183,7 @@ def _compute_posture(lm) -> dict:
     }
 
 
-def _detect_weak_zones(proportions: dict, posture: dict) -> list[dict]:
+def _detect_weak_zones(proportions: dict, posture: dict, legs_visible: bool = True) -> list[dict]:
     """Heuristic detection of potentially weak muscle groups."""
     zones = []
 
@@ -195,7 +195,7 @@ def _detect_weak_zones(proportions: dict, posture: dict) -> list[dict]:
             "description": "Вузькі плечі відносно талії — рекомендовано більше уваги дельтам та широчайшим.",
             "severity": "moderate",
         })
-    elif ratio > 1.6:
+    elif ratio > 1.6 and legs_visible:
         zones.append({
             "zone": "legs_glutes",
             "label": "Ноги та сідниці",
@@ -211,7 +211,7 @@ def _detect_weak_zones(proportions: dict, posture: dict) -> list[dict]:
             "severity": "moderate",
         })
 
-    if proportions.get("leg_symmetry", 100) < 95:
+    if legs_visible and proportions.get("leg_symmetry", 100) < 95:
         zones.append({
             "zone": "legs",
             "label": "Симетрія ніг",
@@ -425,8 +425,8 @@ async def run_pose_analysis(image_path: str, corrected_keypoints: dict | None = 
         landmarks_list.append(left_waist)  # Index 33 (P.L_WAIST)
         landmarks_list.append(right_waist) # Index 34 (P.R_WAIST)
 
-        # Always count legs in skeleton and calculations
-        legs_visible_actual = True
+        # Determine if legs are visible for weak zone detection
+        legs_visible_actual = legs_visible if legs_visible is not None else True
 
         # If corrected_keypoints are provided by Gemini, adjust landmarks.
         # We use a mathematically stabilized method: shift the height (Y) and scale the width (X)
@@ -491,7 +491,18 @@ async def run_pose_analysis(image_path: str, corrected_keypoints: dict | None = 
         # Compute metrics
         proportions = _compute_proportions(landmarks_list)
         posture = _compute_posture(landmarks_list)
-        weak_zones = _detect_weak_zones(proportions, posture)
+
+        # Zero out leg metrics when legs are not visible/assessable
+        if not legs_visible_actual:
+            proportions["leg_symmetry"] = 0.0
+            proportions["left_leg_length"] = 0.0
+            proportions["right_leg_length"] = 0.0
+            proportions["left_thigh"] = 0.0
+            proportions["left_calf"] = 0.0
+            proportions["right_thigh"] = 0.0
+            proportions["right_calf"] = 0.0
+
+        weak_zones = _detect_weak_zones(proportions, posture, legs_visible=legs_visible_actual)
 
         # Serialize keypoints
         keypoints = {}

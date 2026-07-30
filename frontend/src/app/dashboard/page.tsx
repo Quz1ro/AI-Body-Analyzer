@@ -132,11 +132,13 @@ function DashboardContent() {
                         {a.proportions?.arm_symmetry?.toFixed(1)}%
                       </strong>
                     </span>
+                    {a.gemini_analysis?.photo_type !== "torso_only" && (a.proportions?.leg_symmetry ?? 0) > 0 && (
                     <span>
                       Ніг: <strong style={{ color: "var(--text-primary)" }}>
                         {a.proportions?.leg_symmetry?.toFixed(1)}%
                       </strong>
                     </span>
+                    )}
                   </div>
                 </div>
                 <div style={{ display: "flex", gap: "6px" }}>

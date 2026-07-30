@@ -227,7 +227,7 @@ async def recalculate_analysis(
         analysis_data = await run_pose_analysis(
             image.file_path,
             corrected_keypoints=corrected_kp,
-            legs_visible=True
+            legs_visible=legs_visible_flag
         )
     except Exception as e:
         raise HTTPException(status_code=422, detail=f"Recalculation failed: {str(e)}")
