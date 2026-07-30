@@ -54,24 +54,44 @@ function DashboardContent() {
       {/* Stats Summary */}
       <section className="animate-in animate-delay-1" style={{ marginBottom: "32px" }}>
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "12px" }}>
-          <div className="stat-card">
+          <div className="stat-card" style={{
+            borderTop: "2px solid rgba(59,130,246,0.4)",
+            background: "linear-gradient(180deg, rgba(59,130,246,0.06) 0%, var(--bg-card) 40%)",
+          }}>
             <div className="stat-label">Всього аналізів</div>
-            <div className="stat-value gradient-text">{analyses.length}</div>
+            <div className="stat-value gradient-text" style={{ fontSize: "32px" }}>{analyses.length}</div>
           </div>
           {analyses.length > 0 && (
             <>
-              <div className="stat-card">
+              <div className="stat-card" style={{
+                borderTop: "2px solid rgba(6,182,212,0.4)",
+                background: "linear-gradient(180deg, rgba(6,182,212,0.06) 0%, var(--bg-card) 40%)",
+              }}>
                 <div className="stat-label">Останній аналіз</div>
-                <div className="stat-value" style={{ fontSize: "18px", color: "var(--accent-teal)" }}>
+                <div className="stat-value" style={{ fontSize: "20px", color: "var(--accent-teal)" }}>
                   {new Date(analyses[0].created_at).toLocaleDateString("uk-UA")}
                 </div>
               </div>
-              <div className="stat-card">
+              <div className="stat-card" style={{
+                borderTop: "2px solid rgba(139,92,246,0.4)",
+                background: "linear-gradient(180deg, rgba(139,92,246,0.06) 0%, var(--bg-card) 40%)",
+              }}>
                 <div className="stat-label">Плечі/Талія (останній)</div>
-                <div className="stat-value gradient-text">
+                <div className="stat-value gradient-text" style={{ fontSize: "28px" }}>
                   {analyses[0].proportions?.shoulder_to_hip_ratio?.toFixed(2) || "—"}
                 </div>
               </div>
+              {analyses[0].gemini_analysis?.overall_rating != null && (
+                <div className="stat-card" style={{
+                  borderTop: "2px solid rgba(16,185,129,0.4)",
+                  background: "linear-gradient(180deg, rgba(16,185,129,0.06) 0%, var(--bg-card) 40%)",
+                }}>
+                  <div className="stat-label">Рейтинг (останній)</div>
+                  <div className="stat-value" style={{ fontSize: "28px", color: "var(--accent-green)" }}>
+                    {analyses[0].gemini_analysis.overall_rating.toFixed(1)}
+                  </div>
+                </div>
+              )}
             </>
           )}
         </div>

@@ -8,11 +8,12 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
-import { CameraIcon, BarChartIcon, MessageCircleIcon, UserIcon, ActivityIcon } from "@/components/ui/Icons";
+import { CameraIcon, BarChartIcon, TrendingUpIcon, MessageCircleIcon, UserIcon, ActivityIcon } from "@/components/ui/Icons";
 
 const navItems = [
   { href: "/", label: "Аналіз", icon: <CameraIcon size={18} /> },
   { href: "/dashboard", label: "Дашборд", icon: <BarChartIcon size={18} /> },
+  { href: "/statistics", label: "Статистика", icon: <TrendingUpIcon size={18} /> },
   { href: "/assistant", label: "Асистент", icon: <MessageCircleIcon size={18} /> },
   { href: "/profile", label: "Профіль", icon: <UserIcon size={18} /> },
 ];
