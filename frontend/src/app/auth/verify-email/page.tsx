@@ -9,12 +9,14 @@ import { useSearchParams, useRouter } from "next/navigation";
 import Link from "next/link";
 import { verifyEmail, resendVerification, isAuthenticated } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
+import { useLanguage } from "@/hooks/useLanguage";
 import { ActivityIcon } from "@/components/ui/Icons";
 
 function VerifyEmailContent() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const { refresh, isLoggedIn } = useAuth();
+  const { t } = useLanguage();
   const token = searchParams.get("token");
 
   const [status, setStatus] = useState<"loading" | "success" | "already" | "error">("loading");
@@ -25,7 +27,7 @@ function VerifyEmailContent() {
   useEffect(() => {
     if (!token) {
       setStatus("error");
-      setErrorMsg("Посилання для підтвердження некоректне або відсутнє");
+      setErrorMsg(t.auth.verifyEmail.errorInvalidLink);
       return;
     }
 
@@ -43,7 +45,7 @@ function VerifyEmailContent() {
       })
       .catch((err) => {
         setStatus("error");
-        setErrorMsg(err.message || "Помилка підтвердження email");
+        setErrorMsg(err.message || t.auth.verifyEmail.errorGeneric);
       });
   }, [token, refresh]);
 
@@ -93,10 +95,10 @@ function VerifyEmailContent() {
               }} />
             </div>
             <h1 style={{ fontSize: "22px", fontWeight: 800, marginBottom: "8px" }}>
-              Підтвердження <span className="gradient-text">email</span>...
+              {t.auth.verifyEmail.loadingTitle} <span className="gradient-text">{t.auth.verifyEmail.loadingTitleAccent}</span>...
             </h1>
             <p style={{ color: "var(--text-secondary)", fontSize: "14px" }}>
-              Зачекайте, ми перевіряємо ваше посилання
+              {t.auth.verifyEmail.loadingText}
             </p>
           </>
         )}
@@ -118,18 +120,17 @@ function VerifyEmailContent() {
               ✓
             </div>
             <h1 style={{ fontSize: "22px", fontWeight: 800, marginBottom: "8px" }}>
-              Email <span className="gradient-text">підтверджено!</span>
+              {t.auth.verifyEmail.successTitle} <span className="gradient-text">{t.auth.verifyEmail.successTitleAccent}</span>
             </h1>
             <p style={{ color: "var(--text-secondary)", fontSize: "14px", marginBottom: "28px" }}>
-              Вашу електронну пошту успішно підтверджено. Тепер ви можете
-              завантажувати фото та запускати аналіз.
+              {t.auth.verifyEmail.successText}
             </p>
             <button
               className="btn-primary"
               onClick={() => router.push("/")}
               style={{ padding: "14px 40px", fontSize: "15px" }}
             >
-              Перейти до додатку
+              {t.auth.verifyEmail.goToApp}
             </button>
           </>
         )}
@@ -151,17 +152,17 @@ function VerifyEmailContent() {
               ✓
             </div>
             <h1 style={{ fontSize: "22px", fontWeight: 800, marginBottom: "8px" }}>
-              Email вже <span className="gradient-text">підтверджено</span>
+              {t.auth.verifyEmail.alreadyTitle} <span className="gradient-text">{t.auth.verifyEmail.alreadyTitleAccent}</span>
             </h1>
             <p style={{ color: "var(--text-secondary)", fontSize: "14px", marginBottom: "28px" }}>
-              Ваша електронна пошта була підтверджена раніше.
+              {t.auth.verifyEmail.alreadyText}
             </p>
             <button
               className="btn-primary"
               onClick={() => router.push("/")}
               style={{ padding: "14px 40px", fontSize: "15px" }}
             >
-              Перейти до додатку
+              {t.auth.verifyEmail.goToApp}
             </button>
           </>
         )}
@@ -184,13 +185,13 @@ function VerifyEmailContent() {
               ✕
             </div>
             <h1 style={{ fontSize: "22px", fontWeight: 800, marginBottom: "8px" }}>
-              Помилка <span style={{ color: "var(--accent-red)" }}>підтвердження</span>
+              {t.auth.verifyEmail.errorTitle} <span style={{ color: "var(--accent-red)" }}>{t.auth.verifyEmail.errorTitleAccent}</span>
             </h1>
             <p style={{ color: "var(--text-secondary)", fontSize: "14px", marginBottom: "8px" }}>
               {errorMsg}
             </p>
             <p style={{ color: "var(--text-muted)", fontSize: "13px", marginBottom: "28px" }}>
-              Посилання могло закінчитися. Спробуйте надіслати лист повторно.
+              {t.auth.verifyEmail.errorExpired}
             </p>
 
             {isLoggedIn && !resent && (
@@ -200,7 +201,7 @@ function VerifyEmailContent() {
                 disabled={resending}
                 style={{ padding: "14px 32px", fontSize: "15px", marginBottom: "12px" }}
               >
-                {resending ? "Надсилання..." : "Надіслати повторно"}
+                {resending ? t.auth.verifyEmail.resending : t.auth.verifyEmail.resendBtn}
               </button>
             )}
 
@@ -214,7 +215,7 @@ function VerifyEmailContent() {
                 fontSize: "13px",
                 marginBottom: "12px",
               }}>
-                ✓ Лист підтвердження надіслано повторно
+                {t.auth.verifyEmail.resentSuccess}
               </div>
             )}
 
@@ -223,7 +224,7 @@ function VerifyEmailContent() {
                 href="/"
                 style={{ color: "var(--accent-blue)", textDecoration: "none", fontSize: "13px", fontWeight: 600 }}
               >
-                На головну
+                {t.auth.verifyEmail.goHome}
               </Link>
             </div>
           </>
@@ -251,7 +252,7 @@ export default function VerifyEmailPage() {
         background: "var(--bg-primary)",
       }}>
         <div className="glass-card" style={{ padding: "48px", textAlign: "center" }}>
-          <p style={{ color: "var(--text-secondary)" }}>Завантаження...</p>
+          <p style={{ color: "var(--text-secondary)" }}>Loading...</p>
         </div>
       </div>
     }>

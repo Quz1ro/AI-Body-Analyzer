@@ -8,6 +8,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
+import { useLanguage } from "@/hooks/useLanguage";
 import { resendVerification, checkVerificationStatus, isAuthenticated } from "@/lib/api";
 import { ActivityIcon } from "@/components/ui/Icons";
 
@@ -16,6 +17,7 @@ const RESEND_COOLDOWN = 60; // seconds
 export default function VerifyPendingPage() {
   const router = useRouter();
   const { user, loading, isLoggedIn, emailVerified, refresh, logout } = useAuth();
+  const { t } = useLanguage();
 
   const [resending, setResending] = useState(false);
   const [resent, setResent] = useState(false);
@@ -99,12 +101,12 @@ export default function VerifyPendingPage() {
         setCooldown(remaining);
         setError("");
       } else {
-        setError(err.message || "Помилка надсилання");
+        setError(err.message || t.auth.verifyPending.sendError);
       }
     } finally {
       setResending(false);
     }
-  }, [cooldown, resending]);
+  }, [cooldown, resending, t]);
 
   const handleLogout = useCallback(() => {
     logout();
@@ -122,7 +124,7 @@ export default function VerifyPendingPage() {
         background: "var(--bg-primary)",
       }}>
         <div className="glass-card" style={{ padding: "48px", textAlign: "center" }}>
-          <p style={{ color: "var(--text-secondary)" }}>Завантаження...</p>
+          <p style={{ color: "var(--text-secondary)" }}>{t.common.loading}</p>
         </div>
       </div>
     );
@@ -170,8 +172,8 @@ export default function VerifyPendingPage() {
         </div>
 
         <h1 style={{ fontSize: "24px", fontWeight: 800, marginBottom: "8px" }}>
-          Підтвердіть вашу{" "}
-          <span className="gradient-text">пошту</span>
+          {t.auth.verifyPending.title}{" "}
+          <span className="gradient-text">{t.auth.verifyPending.titleAccent}</span>
         </h1>
 
         <p style={{
@@ -180,7 +182,7 @@ export default function VerifyPendingPage() {
           marginBottom: "8px",
           lineHeight: 1.6,
         }}>
-          Ми надіслали лист підтвердження на адресу:
+          {t.auth.verifyPending.sentTo}
         </p>
 
         <p style={{
@@ -203,8 +205,7 @@ export default function VerifyPendingPage() {
           marginBottom: "32px",
           lineHeight: 1.7,
         }}>
-          Натисніть на посилання в листі, щоб підтвердити вашу електронну пошту
-          та отримати повний доступ до додатку. Сторінка оновиться автоматично.
+          {t.auth.verifyPending.instructions}
         </p>
 
         {/* Status indicators */}
@@ -224,7 +225,7 @@ export default function VerifyPendingPage() {
             background: "var(--accent-teal)",
             animation: "pulse-dot 1.5s ease-in-out infinite",
           }} />
-          Очікуємо підтвердження...
+          {t.auth.verifyPending.waiting}
         </div>
 
         {/* Resend button or success message */}
@@ -238,7 +239,7 @@ export default function VerifyPendingPage() {
             fontSize: "13px",
             marginBottom: "16px",
           }}>
-            ✓ Лист надіслано повторно. Повторна відправка через {cooldown} с.
+            {t.auth.verifyPending.resent} {cooldown} {t.auth.verifyPending.seconds}
           </div>
         ) : (
           <button
@@ -254,10 +255,10 @@ export default function VerifyPendingPage() {
             }}
           >
             {resending
-              ? "Надсилання..."
+              ? t.auth.verifyPending.resending
               : cooldown > 0
-                ? `Повторити через ${cooldown} с.`
-                : "Надіслати лист повторно"}
+                ? `${t.auth.verifyPending.retryIn} ${cooldown} ${t.auth.verifyPending.seconds}`
+                : t.auth.verifyPending.resendBtn}
           </button>
         )}
 
@@ -289,7 +290,7 @@ export default function VerifyPendingPage() {
             padding: "8px",
           }}
         >
-          Вийти з акаунту
+          {t.auth.verifyPending.logoutBtn}
         </button>
       </div>
 

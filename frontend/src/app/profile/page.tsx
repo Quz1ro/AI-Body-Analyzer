@@ -8,12 +8,15 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
+import { useLanguage } from "@/hooks/useLanguage";
 import { updateProfile, deleteAccount } from "@/lib/api";
 import { UserIcon, AlertTriangleIcon } from "@/components/ui/Icons";
 import AuthGuard from "@/components/layout/AuthGuard";
+import type { Locale } from "@/locales";
 
 function ProfileContent() {
   const { user, refresh, logout } = useAuth();
+  const { locale, setLocale, t } = useLanguage();
   const router = useRouter();
   const [name, setName] = useState("");
   const [saving, setSaving] = useState(false);
@@ -53,16 +56,23 @@ function ProfileContent() {
     }
   }
 
+  const langOptions: { key: Locale; flag: string; label: string }[] = [
+    { key: "uk", flag: "🇺🇦", label: t.lang.uk },
+    { key: "en", flag: "🇬🇧", label: t.lang.en },
+  ];
+
+  const dateLocale = locale === "uk" ? "uk-UA" : "en-US";
+
   if (!user) return null;
 
   return (
     <div className="page-container">
       <section className="animate-in" style={{ marginBottom: "32px" }}>
         <h1 style={{ fontSize: "28px", fontWeight: 800, letterSpacing: "-0.02em", marginBottom: "8px" }}>
-          <span style={{ display: "inline-flex", alignItems: "center", gap: "8px" }}><UserIcon size={22} /> Профіль</span>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: "8px" }}><UserIcon size={22} /> {t.profile.title}</span>
         </h1>
         <p style={{ color: "var(--text-secondary)", fontSize: "14px" }}>
-          Перегляд та редагування вашого профілю
+          {t.profile.subtitle}
         </p>
       </section>
 
@@ -93,17 +103,17 @@ function ProfileContent() {
                 background: "rgba(0, 212, 170, 0.12)",
                 color: "var(--accent-teal)",
                 fontWeight: 600,
-              }}>✓ Підтверджено</span>
+              }}>{t.common.confirmed}</span>
             </div>
             <div style={{ fontSize: "12px", color: "var(--text-muted)", marginTop: "4px" }}>
-              Зареєстрований: {new Date(user.created_at).toLocaleDateString("uk-UA")}
+              {t.common.registered}: {new Date(user.created_at).toLocaleDateString(dateLocale)}
             </div>
           </div>
         </div>
 
         <form onSubmit={handleSave} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
           <div>
-            <label className="input-label" htmlFor="profile-name">Ім&apos;я</label>
+            <label className="input-label" htmlFor="profile-name">{t.profile.nameLabel}</label>
             <input
               id="profile-name"
               type="text"
@@ -115,7 +125,7 @@ function ProfileContent() {
             />
           </div>
           <div>
-            <label className="input-label">Email</label>
+            <label className="input-label">{t.profile.emailLabel}</label>
             <input
               type="email"
               className="input-field"
@@ -127,31 +137,86 @@ function ProfileContent() {
 
           <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
             <button type="submit" className="btn-primary" disabled={saving}>
-              {saving ? "Збереження..." : "Зберегти"}
+              {saving ? t.common.saving : t.common.save}
             </button>
             {saved && (
-              <span style={{ fontSize: "13px", color: "var(--accent-green)" }}>✓ Збережено</span>
+              <span style={{ fontSize: "13px", color: "var(--accent-green)" }}>{t.common.saved}</span>
             )}
           </div>
         </form>
       </div>
 
-      {/* Danger Zone */}
+      {/* Language Selector */}
       <div className="glass-card animate-in animate-delay-2" style={{
+        padding: "24px",
+        maxWidth: "520px",
+        marginBottom: "24px",
+      }}>
+        <h3 style={{ fontSize: "16px", fontWeight: 700, marginBottom: "4px" }}>
+          {t.profile.languageTitle}
+        </h3>
+        <p style={{ fontSize: "13px", color: "var(--text-secondary)", marginBottom: "16px" }}>
+          {t.profile.languageSubtitle}
+        </p>
+
+        <div style={{
+          display: "flex",
+          gap: "10px",
+        }}>
+          {langOptions.map((l) => (
+            <button
+              key={l.key}
+              type="button"
+              onClick={() => setLocale(l.key)}
+              style={{
+                flex: 1,
+                padding: "14px 16px",
+                borderRadius: "var(--radius-md, 12px)",
+                border: locale === l.key
+                  ? "2px solid rgba(45, 212, 191, 0.5)"
+                  : "1px solid var(--border-subtle)",
+                background: locale === l.key
+                  ? "rgba(45, 212, 191, 0.08)"
+                  : "rgba(255, 255, 255, 0.02)",
+                color: locale === l.key
+                  ? "var(--accent-teal)"
+                  : "var(--text-secondary)",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                justifyContent: "center",
+                gap: "10px",
+                fontSize: "14px",
+                fontWeight: 700,
+                transition: "all 0.25s ease",
+                boxShadow: locale === l.key
+                  ? "0 0 12px rgba(45, 212, 191, 0.15)"
+                  : "none",
+              }}
+            >
+              <span style={{ fontSize: "22px" }}>{l.flag}</span>
+              {l.label}
+            </button>
+          ))}
+        </div>
+      </div>
+
+      {/* Danger Zone */}
+      <div className="glass-card animate-in animate-delay-3" style={{
         padding: "24px",
         maxWidth: "520px",
         borderColor: "rgba(239, 68, 68, 0.2)",
       }}>
         <h3 style={{ fontSize: "16px", fontWeight: 700, color: "var(--accent-red)", marginBottom: "8px" }}>
-          <span style={{ display: "inline-flex", alignItems: "center", gap: "8px" }}><AlertTriangleIcon size={18} /> Небезпечна зона</span>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: "8px" }}><AlertTriangleIcon size={18} /> {t.profile.dangerZone}</span>
         </h3>
         <p style={{ fontSize: "13px", color: "var(--text-secondary)", marginBottom: "16px" }}>
-          Видалення акаунта є незворотним. Всі ваші дані, аналізи та фотографії будуть видалені.
+          {t.profile.dangerText}
         </p>
 
         {!showDeleteConfirm ? (
           <button className="btn-danger" onClick={() => setShowDeleteConfirm(true)}>
-            Видалити акаунт
+            {t.profile.deleteAccount}
           </button>
         ) : (
           <div style={{ display: "flex", gap: "12px", alignItems: "center" }}>
@@ -160,10 +225,10 @@ function ProfileContent() {
               onClick={handleDelete}
               disabled={deleting}
             >
-              {deleting ? "Видалення..." : "Так, видалити"}
+              {deleting ? t.profile.deleting : t.profile.confirmDelete}
             </button>
             <button className="btn-secondary" onClick={() => setShowDeleteConfirm(false)}>
-              Скасувати
+              {t.common.cancel}
             </button>
           </div>
         )}

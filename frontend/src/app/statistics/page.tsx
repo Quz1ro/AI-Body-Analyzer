@@ -8,6 +8,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { listAnalyses } from "@/lib/api";
+import { useLanguage } from "@/hooks/useLanguage";
 import type { AnalysisSummary } from "@/types";
 import { TrendingUpIcon, DumbbellIcon, BarChartIcon } from "@/components/ui/Icons";
 import AuthGuard from "@/components/layout/AuthGuard";
@@ -47,29 +48,12 @@ const MUSCLE_COLORS: Record<string, string> = {
   legs:      "#ef4444",
 };
 
-const MUSCLE_LABELS: Record<string, string> = {
-  shoulders: "Плечі",
-  chest:     "Груди",
-  back:      "Спина",
-  arms:      "Руки",
-  core:      "Кор",
-  legs:      "Ноги",
-};
-
 const PROPORTION_COLORS: Record<string, string> = {
   shoulder_to_hip: "#8b5cf6",
   waist_shoulder:  "#06b6d4",
   body_fat:        "#10b981",
   dryness:         "#f59e0b",
   muscle_mass:     "#3b82f6",
-};
-
-const PROPORTION_LABELS: Record<string, string> = {
-  shoulder_to_hip: "Плечі/Стегна",
-  waist_shoulder:  "Талія/Плечі",
-  body_fat:        "BF%",
-  dryness:         "Сухість",
-  muscle_mass:     "М'яз. маса",
 };
 
 // ── SVG Line Chart Component ─────────────────────────────────
@@ -211,10 +195,12 @@ function LineChart({
     });
   };
 
+  const { t } = useLanguage();
+
   if (numPoints === 0) {
     return (
       <div style={{ padding: "48px", textAlign: "center", color: "var(--text-muted)" }}>
-        Недостатньо даних для побудови графіку
+        {t.statistics.noChartData}
       </div>
     );
   }
@@ -427,9 +413,12 @@ type TabKey = "rating" | "muscles" | "proportions";
 
 function StatisticsContent() {
   const router = useRouter();
+  const { locale, t } = useLanguage();
   const [analyses, setAnalyses] = useState<AnalysisSummary[]>([]);
   const [loading, setLoading] = useState(true);
   const [activeTab, setActiveTab] = useState<TabKey>("rating");
+
+  const dateLocale = locale === "uk" ? "uk-UA" : "en-US";
 
   useEffect(() => {
     listAnalyses()
@@ -455,12 +444,15 @@ function StatisticsContent() {
 
   const formatDate = (d: string) => {
     const date = new Date(d);
-    return date.toLocaleDateString("uk-UA", { day: "numeric", month: "short" });
+    return date.toLocaleDateString(dateLocale, { day: "numeric", month: "short" });
   };
 
   const formatDateFull = (d: string) => {
-    return new Date(d).toLocaleDateString("uk-UA", { day: "numeric", month: "long", year: "numeric" });
+    return new Date(d).toLocaleDateString(dateLocale, { day: "numeric", month: "long", year: "numeric" });
   };
+
+  const MUSCLE_LABELS = t.statistics.muscles;
+  const PROPORTION_LABELS = t.statistics.proportions;
 
   // 1. Overall Rating series
   const ratingPoints: ChartPoint[] = analyses
@@ -474,11 +466,10 @@ function StatisticsContent() {
     }));
 
   const ratingSeries: ChartSeries[] = [
-    { key: "rating", name: "Загальний рейтинг", color: "#8b5cf6", points: ratingPoints },
+    { key: "rating", name: t.statistics.overallRating, color: "#8b5cf6", points: ratingPoints },
   ];
 
   // 2. Muscle groups series
-  // For legs: if the photo is torso_only, the score is 0 — carry forward the last known value
   const muscleKeys = ["shoulders", "chest", "back", "arms", "core", "legs"] as const;
   const muscleSeries: ChartSeries[] = muscleKeys.map((mk) => {
     const withMuscleData = analyses.filter((a) => a.gemini_analysis?.muscle_groups != null);
@@ -491,9 +482,7 @@ function StatisticsContent() {
       const rawScore = (mg as any)[mk]?.score ?? 0;
       const isTorsoOnly = a.gemini_analysis?.photo_type === "torso_only";
 
-      // If legs (or any group) has 0 score on a torso-only scan, use the last known value
       if (rawScore <= 0 && isTorsoOnly) {
-        // Skip this point entirely if we have no prior data for this group
         if (lastKnownValue <= 0) continue;
         points.push({
           x: points.length,
@@ -516,7 +505,7 @@ function StatisticsContent() {
 
     return {
       key: mk,
-      name: MUSCLE_LABELS[mk],
+      name: MUSCLE_LABELS[mk as keyof typeof MUSCLE_LABELS],
       color: MUSCLE_COLORS[mk],
       points,
     };
@@ -595,9 +584,9 @@ function StatisticsContent() {
   const getFirst = (points: ChartPoint[]) => points[0]?.value ?? null;
 
   const tabs: { key: TabKey; label: string; icon: React.ReactNode }[] = [
-    { key: "rating", label: "Загальна оцінка", icon: <TrendingUpIcon size={15} /> },
-    { key: "muscles", label: "М'язові групи", icon: <DumbbellIcon size={15} /> },
-    { key: "proportions", label: "Пропорції тіла", icon: <BarChartIcon size={15} /> },
+    { key: "rating", label: t.statistics.tabRating, icon: <TrendingUpIcon size={15} /> },
+    { key: "muscles", label: t.statistics.tabMuscles, icon: <DumbbellIcon size={15} /> },
+    { key: "proportions", label: t.statistics.tabProportions, icon: <BarChartIcon size={15} /> },
   ];
 
   return (
@@ -606,11 +595,11 @@ function StatisticsContent() {
       <section className="animate-in" style={{ marginBottom: "28px" }}>
         <h1 style={{ fontSize: "28px", fontWeight: 800, letterSpacing: "-0.02em", marginBottom: "8px" }}>
           <span style={{ display: "inline-flex", alignItems: "center", gap: "8px" }}>
-            <TrendingUpIcon size={22} /> Статистика прогресу
+            <TrendingUpIcon size={22} /> {t.statistics.title}
           </span>
         </h1>
         <p style={{ color: "var(--text-secondary)", fontSize: "14px", margin: 0 }}>
-          Порівняння ваших показників з часом — відстежуйте зміни та прогрес
+          {t.statistics.subtitle}
         </p>
       </section>
 
@@ -620,13 +609,13 @@ function StatisticsContent() {
           <div className="glass-card" style={{ padding: "56px 32px", textAlign: "center" }}>
             <div style={{ fontSize: "48px", marginBottom: "16px", opacity: 0.3 }}>📊</div>
             <h2 style={{ fontSize: "18px", fontWeight: 700, marginBottom: "8px" }}>
-              Недостатньо даних
+              {t.statistics.notEnoughData}
             </h2>
             <p style={{ color: "var(--text-secondary)", fontSize: "14px", marginBottom: "20px", maxWidth: "400px", margin: "0 auto 20px" }}>
-              Для побудови графіків прогресу потрібно мінімум 2 аналізи. Зробіть ще {2 - analyses.length} аналіз{analyses.length === 0 ? "и" : ""}.
+              {t.statistics.notEnoughDataHint} {t.statistics.moreAnalysesNeeded} {2 - analyses.length} {analyses.length === 0 ? t.statistics.analysesWordPlural : t.statistics.analysesWord}.
             </p>
             <button className="btn-primary" onClick={() => router.push("/")}>
-              Зробити аналіз
+              {t.statistics.doAnalysis}
             </button>
           </div>
         </section>
@@ -640,14 +629,14 @@ function StatisticsContent() {
                 borderTop: "2px solid rgba(59,130,246,0.4)",
                 background: "linear-gradient(180deg, rgba(59,130,246,0.06) 0%, var(--bg-card) 40%)",
               }}>
-                <div className="stat-label">Всього аналізів</div>
+                <div className="stat-label">{t.statistics.totalAnalyses}</div>
                 <div className="stat-value gradient-text" style={{ fontSize: "32px" }}>{analyses.length}</div>
               </div>
               <div className="stat-card" style={{
                 borderTop: "2px solid rgba(139,92,246,0.4)",
                 background: "linear-gradient(180deg, rgba(139,92,246,0.06) 0%, var(--bg-card) 40%)",
               }}>
-                <div className="stat-label">Рейтинг (останній)</div>
+                <div className="stat-label">{t.statistics.ratingLast}</div>
                 <div style={{ display: "flex", alignItems: "center", gap: "10px", marginTop: "4px" }}>
                   <span className="stat-value" style={{ fontSize: "28px", color: "#8b5cf6" }}>
                     {getLatest(ratingPoints)?.toFixed(1) ?? "—"}
@@ -661,7 +650,7 @@ function StatisticsContent() {
                 borderTop: "2px solid rgba(16,185,129,0.4)",
                 background: "linear-gradient(180deg, rgba(16,185,129,0.06) 0%, var(--bg-card) 40%)",
               }}>
-                <div className="stat-label">BF% (останній)</div>
+                <div className="stat-label">{t.statistics.bfLast}</div>
                 <div style={{ display: "flex", alignItems: "center", gap: "10px", marginTop: "4px" }}>
                   <span className="stat-value" style={{ fontSize: "28px", color: PROPORTION_COLORS.body_fat }}>
                     {proportionsSeries[2]?.points.length
@@ -710,14 +699,14 @@ function StatisticsContent() {
           {/* Tab Bar */}
           <section className="animate-in animate-delay-2" style={{ marginBottom: "20px" }}>
             <div className="stats-tabs">
-              {tabs.map((t) => (
+              {tabs.map((tabItem) => (
                 <button
-                  key={t.key}
-                  className={`stats-tab ${activeTab === t.key ? "active" : ""}`}
-                  onClick={() => setActiveTab(t.key)}
+                  key={tabItem.key}
+                  className={`stats-tab ${activeTab === tabItem.key ? "active" : ""}`}
+                  onClick={() => setActiveTab(tabItem.key)}
                 >
                   <span style={{ display: "inline-flex", alignItems: "center", gap: "6px" }}>
-                    {t.icon} {t.label}
+                    {tabItem.icon} {tabItem.label}
                   </span>
                 </button>
               ))}
@@ -729,17 +718,17 @@ function StatisticsContent() {
             {activeTab === "rating" && (
               <div className="chart-container">
                 <h3 style={{ fontSize: "16px", fontWeight: 700, marginBottom: "4px" }}>
-                  Загальний фітнес-рейтинг
+                  {t.statistics.ratingChartTitle}
                 </h3>
                 <p style={{ fontSize: "13px", color: "var(--text-secondary)", marginBottom: "16px" }}>
-                  Як змінюється ваш загальний рейтинг від аналізу до аналізу (шкала 1-10)
+                  {t.statistics.ratingChartDesc}
                 </p>
                 <LineChart
                   series={ratingSeries}
                   height={340}
                   yMin={0}
                   yMax={10}
-                  yLabel="Рейтинг"
+                  yLabel={t.statistics.ratingYLabel}
                   gradientId="rating-grad"
                   animationKey="rating"
                 />
@@ -749,17 +738,17 @@ function StatisticsContent() {
             {activeTab === "muscles" && (
               <div className="chart-container">
                 <h3 style={{ fontSize: "16px", fontWeight: 700, marginBottom: "4px" }}>
-                  Оцінки м'язових груп
+                  {t.statistics.musclesChartTitle}
                 </h3>
                 <p style={{ fontSize: "13px", color: "var(--text-secondary)", marginBottom: "16px" }}>
-                  Прогрес кожної м'язової групи (шкала 1-10). Натисніть легенду щоб приховати/показати лінію
+                  {t.statistics.musclesChartDesc}
                 </p>
                 <LineChart
                   series={muscleSeries}
                   height={380}
                   yMin={0}
                   yMax={10}
-                  yLabel="Оцінка"
+                  yLabel={t.statistics.musclesYLabel}
                   showLegend
                   gradientId="muscles-grad"
                   animationKey="muscles"
@@ -770,10 +759,10 @@ function StatisticsContent() {
             {activeTab === "proportions" && (
               <div className="chart-container">
                 <h3 style={{ fontSize: "16px", fontWeight: 700, marginBottom: "4px" }}>
-                  Пропорції та показники тіла
+                  {t.statistics.propsChartTitle}
                 </h3>
                 <p style={{ fontSize: "13px", color: "var(--text-secondary)", marginBottom: "16px" }}>
-                  Зміни пропорцій, відсотка жиру, сухості та м'язової маси. Натисніть легенду щоб фільтрувати
+                  {t.statistics.propsChartDesc}
                 </p>
                 <LineChart
                   series={proportionsSeries}

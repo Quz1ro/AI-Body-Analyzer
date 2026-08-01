@@ -8,6 +8,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
+import { useLanguage } from "@/hooks/useLanguage";
 import { listAnalyses } from "@/lib/api";
 import type { AnalysisSummary } from "@/types";
 import { BarChartIcon, CameraIcon } from "@/components/ui/Icons";
@@ -15,9 +16,12 @@ import AuthGuard from "@/components/layout/AuthGuard";
 
 function DashboardContent() {
   const { user } = useAuth();
+  const { locale, t } = useLanguage();
   const router = useRouter();
   const [analyses, setAnalyses] = useState<AnalysisSummary[]>([]);
   const [loading, setLoading] = useState(true);
+
+  const dateLocale = locale === "uk" ? "uk-UA" : "en-US";
 
   useEffect(() => {
     listAnalyses()
@@ -44,10 +48,10 @@ function DashboardContent() {
       {/* Header */}
       <section className="animate-in" style={{ marginBottom: "32px" }}>
         <h1 style={{ fontSize: "28px", fontWeight: 800, letterSpacing: "-0.02em", marginBottom: "8px" }}>
-          <span style={{ display: "inline-flex", alignItems: "center", gap: "8px" }}><BarChartIcon size={22} /> Дашборд</span>
+          <span style={{ display: "inline-flex", alignItems: "center", gap: "8px" }}><BarChartIcon size={22} /> {t.dashboard.title}</span>
         </h1>
         <p style={{ color: "var(--text-secondary)", fontSize: "14px" }}>
-          Ваша історія аналізів та прогрес
+          {t.dashboard.subtitle}
         </p>
       </section>
 
@@ -58,7 +62,7 @@ function DashboardContent() {
             borderTop: "2px solid rgba(59,130,246,0.4)",
             background: "linear-gradient(180deg, rgba(59,130,246,0.06) 0%, var(--bg-card) 40%)",
           }}>
-            <div className="stat-label">Всього аналізів</div>
+            <div className="stat-label">{t.dashboard.totalAnalyses}</div>
             <div className="stat-value gradient-text" style={{ fontSize: "32px" }}>{analyses.length}</div>
           </div>
           {analyses.length > 0 && (
@@ -67,16 +71,16 @@ function DashboardContent() {
                 borderTop: "2px solid rgba(6,182,212,0.4)",
                 background: "linear-gradient(180deg, rgba(6,182,212,0.06) 0%, var(--bg-card) 40%)",
               }}>
-                <div className="stat-label">Останній аналіз</div>
+                <div className="stat-label">{t.dashboard.lastAnalysis}</div>
                 <div className="stat-value" style={{ fontSize: "20px", color: "var(--accent-teal)" }}>
-                  {new Date(analyses[0].created_at).toLocaleDateString("uk-UA")}
+                  {new Date(analyses[0].created_at).toLocaleDateString(dateLocale)}
                 </div>
               </div>
               <div className="stat-card" style={{
                 borderTop: "2px solid rgba(139,92,246,0.4)",
                 background: "linear-gradient(180deg, rgba(139,92,246,0.06) 0%, var(--bg-card) 40%)",
               }}>
-                <div className="stat-label">Плечі/Талія (останній)</div>
+                <div className="stat-label">{t.dashboard.shoulderHipLast}</div>
                 <div className="stat-value gradient-text" style={{ fontSize: "28px" }}>
                   {analyses[0].proportions?.shoulder_to_hip_ratio?.toFixed(2) || "—"}
                 </div>
@@ -86,7 +90,7 @@ function DashboardContent() {
                   borderTop: "2px solid rgba(16,185,129,0.4)",
                   background: "linear-gradient(180deg, rgba(16,185,129,0.06) 0%, var(--bg-card) 40%)",
                 }}>
-                  <div className="stat-label">Рейтинг (останній)</div>
+                  <div className="stat-label">{t.dashboard.ratingLast}</div>
                   <div className="stat-value" style={{ fontSize: "28px", color: "var(--accent-green)" }}>
                     {analyses[0].gemini_analysis.overall_rating.toFixed(1)}
                   </div>
@@ -100,20 +104,20 @@ function DashboardContent() {
       {/* Analysis History */}
       <section className="animate-in animate-delay-2">
         <h2 style={{ fontSize: "20px", fontWeight: 700, marginBottom: "16px" }}>
-          Історія аналізів
+          {t.dashboard.historyTitle}
         </h2>
 
         {analyses.length === 0 ? (
           <div className="glass-card" style={{ padding: "48px", textAlign: "center" }}>
             <div style={{ display: "flex", justifyContent: "center", marginBottom: "16px", color: "var(--text-muted)" }}><CameraIcon size={48} /></div>
             <p style={{ fontSize: "16px", fontWeight: 600, marginBottom: "8px" }}>
-              Ще немає аналізів
+              {t.dashboard.noAnalyses}
             </p>
             <p style={{ color: "var(--text-secondary)", fontSize: "14px", marginBottom: "20px" }}>
-              Завантажте фото для першого аналізу
+              {t.dashboard.noAnalysesHint}
             </p>
             <button className="btn-primary" onClick={() => router.push("/")}>
-              Завантажити фото
+              {t.dashboard.uploadPhoto}
             </button>
           </div>
         ) : (
@@ -135,26 +139,26 @@ function DashboardContent() {
                 <div>
                   <div style={{ display: "flex", alignItems: "center", gap: "12px", marginBottom: "8px" }}>
                     <span style={{ fontWeight: 700, fontSize: "15px" }}>
-                      Аналіз #{analyses.length - i}
+                      {t.dashboard.analysisNum} #{analyses.length - i}
                     </span>
                     <span style={{ fontSize: "12px", color: "var(--text-muted)" }}>
-                      {new Date(a.created_at).toLocaleString("uk-UA")}
+                      {new Date(a.created_at).toLocaleString(dateLocale)}
                     </span>
                   </div>
                   <div style={{ display: "flex", gap: "16px", fontSize: "13px", color: "var(--text-secondary)" }}>
                     <span>
-                      Плечі/Талія: <strong style={{ color: "var(--text-primary)" }}>
+                      {t.dashboard.shoulderHipShort}: <strong style={{ color: "var(--text-primary)" }}>
                         {a.proportions?.shoulder_to_hip_ratio?.toFixed(2)}
                       </strong>
                     </span>
                     <span>
-                      Рук: <strong style={{ color: "var(--text-primary)" }}>
+                      {t.dashboard.arms}: <strong style={{ color: "var(--text-primary)" }}>
                         {a.proportions?.arm_symmetry?.toFixed(1)}%
                       </strong>
                     </span>
                     {a.gemini_analysis?.photo_type !== "torso_only" && (a.proportions?.leg_symmetry ?? 0) > 0 && (
                     <span>
-                      Ніг: <strong style={{ color: "var(--text-primary)" }}>
+                      {t.dashboard.legs}: <strong style={{ color: "var(--text-primary)" }}>
                         {a.proportions?.leg_symmetry?.toFixed(1)}%
                       </strong>
                     </span>

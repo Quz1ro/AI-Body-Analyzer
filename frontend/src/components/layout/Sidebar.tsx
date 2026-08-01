@@ -8,20 +8,22 @@ import { useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
+import { useLanguage } from "@/hooks/useLanguage";
 import { CameraIcon, BarChartIcon, TrendingUpIcon, MessageCircleIcon, UserIcon, ActivityIcon } from "@/components/ui/Icons";
-
-const navItems = [
-  { href: "/", label: "Аналіз", icon: <CameraIcon size={18} /> },
-  { href: "/dashboard", label: "Дашборд", icon: <BarChartIcon size={18} /> },
-  { href: "/statistics", label: "Статистика", icon: <TrendingUpIcon size={18} /> },
-  { href: "/assistant", label: "Асистент", icon: <MessageCircleIcon size={18} /> },
-  { href: "/profile", label: "Профіль", icon: <UserIcon size={18} /> },
-];
 
 export default function Sidebar() {
   const pathname = usePathname();
   const { user, logout } = useAuth();
+  const { t } = useLanguage();
   const [isOpen, setIsOpen] = useState(false);
+
+  const navItems = [
+    { href: "/", label: t.sidebar.analysis, icon: <CameraIcon size={18} /> },
+    { href: "/dashboard", label: t.sidebar.dashboard, icon: <BarChartIcon size={18} /> },
+    { href: "/statistics", label: t.sidebar.statistics, icon: <TrendingUpIcon size={18} /> },
+    { href: "/assistant", label: t.sidebar.assistant, icon: <MessageCircleIcon size={18} /> },
+    { href: "/profile", label: t.sidebar.profile, icon: <UserIcon size={18} /> },
+  ];
 
   // Don't show sidebar on auth pages
   if (pathname?.startsWith("/auth")) return null;
@@ -81,7 +83,7 @@ export default function Sidebar() {
                 AI Body Analyzer
               </div>
               <div style={{ fontSize: "11px", color: "var(--text-muted)", fontWeight: 500 }}>
-                Аналіз фізичної форми
+                {t.sidebar.subtitle}
               </div>
             </div>
           </Link>
@@ -144,7 +146,7 @@ export default function Sidebar() {
               className="btn-secondary"
               style={{ width: "100%", fontSize: "12px", padding: "8px" }}
             >
-              Вийти
+              {t.sidebar.logout}
             </button>
           </div>
         )}

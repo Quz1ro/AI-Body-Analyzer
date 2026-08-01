@@ -7,6 +7,7 @@
 import { useState, useEffect, use, useRef } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
+import { useLanguage } from "@/hooks/useLanguage";
 import { getAnalysis, getImageUrl, updateAnalysisMetrics, API_URL } from "@/lib/api";
 import type { Analysis } from "@/types";
 import { XCircleIcon, CameraIcon, EditIcon, SaveIcon, DnaIcon, RulerIcon, CompassIcon, FlameIcon, ZapIcon, DumbbellIcon, BodyIcon, ShoulderIcon, ShieldIcon, LegIcon, FileTextIcon, MessageCircleIcon, PercentIcon } from "@/components/ui/Icons";
@@ -15,10 +16,13 @@ import AuthGuard from "@/components/layout/AuthGuard";
 function AnalysisDetailContent({ params }: { params: Promise<{ id: string }> }) {
   const { id } = use(params);
   const { isLoggedIn, loading: authLoading } = useAuth();
+  const { locale, t } = useLanguage();
   const router = useRouter();
   const [analysis, setAnalysis] = useState<Analysis | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
+
+  const dateLocale = locale === "uk" ? "uk-UA" : "en-US";
 
   // Custom interactive coordinate states
   const [customKeypoints, setCustomKeypoints] = useState<any>(null);
@@ -80,7 +84,7 @@ function AnalysisDetailContent({ params }: { params: Promise<{ id: string }> }) 
       setAnalysis(updated);
       setIsEditingMetrics(false);
     } catch (err: any) {
-      alert(`Помилка оновлення параметрів: ${err.message}`);
+      alert(`${t.analysis.metricsUpdateError}: ${err.message}`);
     } finally {
       setIsSavingMetrics(false);
     }
@@ -161,7 +165,7 @@ function AnalysisDetailContent({ params }: { params: Promise<{ id: string }> }) 
       });
 
       if (!response.ok) {
-        throw new Error("Не вдалося оновити аналіз");
+        throw new Error(t.analysis.updateError);
       }
 
       const updated = await response.json();
@@ -169,7 +173,7 @@ function AnalysisDetailContent({ params }: { params: Promise<{ id: string }> }) 
       setCustomKeypoints(updated.keypoints);
       setIsEditingPoints(false);
     } catch (err: any) {
-      alert(`Помилка: ${err.message}`);
+      alert(`${t.common.error}: ${err.message}`);
     } finally {
       setIsSavingPoints(false);
     }
@@ -190,7 +194,7 @@ function AnalysisDetailContent({ params }: { params: Promise<{ id: string }> }) 
         <div className="glass-card" style={{ padding: 40, textAlign: "center" }}>
           <p style={{ color: "var(--accent-red)", fontSize: 16, display: "flex", alignItems: "center", gap: "8px", justifyContent: "center" }}><XCircleIcon size={20} /> {error}</p>
           <button className="btn-secondary" style={{ marginTop: 16 }} onClick={() => router.push("/dashboard")}>
-            ← Назад
+            {t.common.back}
           </button>
         </div>
       </div>
@@ -211,14 +215,14 @@ function AnalysisDetailContent({ params }: { params: Promise<{ id: string }> }) 
           style={{ marginBottom: "16px", fontSize: "13px", padding: "8px 14px" }}
           onClick={() => router.push("/dashboard")}
         >
-          ← Дашборд
+          {t.analysis.backToDashboard}
         </button>
         <h1 style={{ fontSize: "28px", fontWeight: 800, letterSpacing: "-0.02em", marginBottom: "8px" }}>
-          Результати аналізу
+          {t.analysis.resultsTitle}
         </h1>
         <div style={{ display: "flex", gap: "12px", alignItems: "center", flexWrap: "wrap", marginTop: "8px" }}>
           <p style={{ color: "var(--text-secondary)", fontSize: "14px", margin: 0 }}>
-            {new Date(analysis.created_at).toLocaleString("uk-UA")}
+            {new Date(analysis.created_at).toLocaleString(dateLocale)}
           </p>
           {(() => {
             const isTorso = analysis.gemini_analysis?.photo_type === "torso_only";
@@ -231,7 +235,7 @@ function AnalysisDetailContent({ params }: { params: Promise<{ id: string }> }) 
                 border: isTorso ? "1px solid rgba(245, 158, 11, 0.3)" : "1px solid rgba(16, 185, 129, 0.3)",
                 fontWeight: 700
               }}>
-                {isTorso ? "Лише тулуб (Torso Analysis)" : "Повний зріст (Full Body Analysis)"}
+                {isTorso ? t.analysis.torsoOnly : t.analysis.fullBody}
               </span>
             );
           })()}
@@ -417,7 +421,7 @@ function AnalysisDetailContent({ params }: { params: Promise<{ id: string }> }) 
                                 textAnchor="middle"
                                 style={{ paintOrder: "stroke", stroke: "#000", strokeWidth: 2 }}
                               >
-                                Талія
+                                {t.analysis.waistLabel}
                               </text>
                             )}
                           </g>
@@ -434,7 +438,7 @@ function AnalysisDetailContent({ params }: { params: Promise<{ id: string }> }) 
                         style={{ width: "100%", padding: "10px", fontSize: "13px", display: "inline-flex", alignItems: "center", justifyContent: "center", gap: "8px" }}
                         onClick={() => setIsEditingPoints(true)}
                       >
-                        <EditIcon size={14} /> Налаштувати ключові точки
+                        <EditIcon size={14} /> {t.analysis.editKeypoints}
                       </button>
                     ) : (
                       <>
@@ -444,7 +448,7 @@ function AnalysisDetailContent({ params }: { params: Promise<{ id: string }> }) 
                           onClick={handleSavePoints}
                           disabled={isSavingPoints}
                         >
-                          {isSavingPoints ? "Оновлюємо аналіз..." : "Зберегти зміни"}
+                          {isSavingPoints ? t.analysis.savingAnalysis : t.analysis.saveChanges}
                         </button>
                         <button
                           className="btn-secondary"
@@ -455,7 +459,7 @@ function AnalysisDetailContent({ params }: { params: Promise<{ id: string }> }) 
                           }}
                           disabled={isSavingPoints}
                         >
-                          Скасувати
+                          {t.common.cancel}
                         </button>
                       </>
                     )}
@@ -477,9 +481,8 @@ function AnalysisDetailContent({ params }: { params: Promise<{ id: string }> }) 
             const computedArmLength = (p.left_arm_length + p.right_arm_length) / 2 || 0.7;
             const computedArmRatio = p.torso_length ? (computedArmLength / p.torso_length) : 1.4;
 
-            // Extract values from gemini_analysis, fall back to calculated defaults if not present
             const g = (analysis.gemini_analysis as any) || {
-              body_type: p.shoulder_to_hip_ratio > 1.45 ? "ектоморф" : p.shoulder_to_hip_ratio < 1.15 ? "ендоморф" : "мезоморф",
+              body_type: p.shoulder_to_hip_ratio > 1.45 ? "ectomorph" : p.shoulder_to_hip_ratio < 1.15 ? "endomorph" : "mesomorph",
               photo_type: "full_body",
               waist_shoulder_ratio: parseFloat(computedRatio.toFixed(2)),
               body_fat_pct: 18.5,
@@ -487,28 +490,27 @@ function AnalysisDetailContent({ params }: { params: Promise<{ id: string }> }) 
               muscle_mass_score: 5.0,
               overall_rating: 5.2,
               muscle_groups: {
-                shoulders: { score: 5.5, description: "Помірний тонус плечей." },
-                chest: { score: 5.2, description: "Базовий рельєф грудних м'язів." },
-                back: { score: 5.4, description: "Помірна ширина найширших м'язів спини." },
-                arms: { score: 5.3, description: "Середня м'язова витривалість рук." },
-                core: { score: 5.8, description: "Хороший тонус черевного преса." },
-                legs: { score: 5.0, description: "Нормальна пропорція стегон." }
+                shoulders: { score: 5.5, description: t.analysis.noData },
+                chest: { score: 5.2, description: t.analysis.noData },
+                back: { score: 5.4, description: t.analysis.noData },
+                arms: { score: 5.3, description: t.analysis.noData },
+                core: { score: 5.8, description: t.analysis.noData },
+                legs: { score: 5.0, description: t.analysis.noData }
               },
               torso_leg_ratio: parseFloat(computedTorsoLegRatio.toFixed(2)),
               arm_length_ratio: parseFloat(computedArmRatio.toFixed(2)),
-              overall_assessment: "Оцінка та опис сформовані на основі вимірів комп'ютерного зору (MediaPipe). Для отримання повної деталізації підключіть API-ключ Gemini."
+              overall_assessment: t.analysis.noData
             };
 
             const bodyTypeCapitalized = g.body_type.charAt(0).toUpperCase() + g.body_type.slice(1);
             
-            // Heuristic details for body types
-            let bodyTypeDesc = "Атлетична будова, розвинені м'язи, помірний відсоток жиру.";
+            let bodyTypeDesc: string = t.analysis.mesomorphDesc;
             let bodyTypeColor = "var(--accent-teal)";
-            if (g.body_type.toLowerCase().includes("ект")) {
-              bodyTypeDesc = "Швидкий метаболізм, низький рівень підшкірного жиру, вузький скелет.";
+            if (g.body_type.toLowerCase().includes("ект") || g.body_type.toLowerCase().includes("ect")) {
+              bodyTypeDesc = t.analysis.ectomorphDesc;
               bodyTypeColor = "var(--accent-blue)";
-            } else if (g.body_type.toLowerCase().includes("енд")) {
-              bodyTypeDesc = "Повільний метаболізм, легкий набір маси, міцна статура, широкий скелет.";
+            } else if (g.body_type.toLowerCase().includes("енд") || g.body_type.toLowerCase().includes("end")) {
+              bodyTypeDesc = t.analysis.endomorphDesc;
               bodyTypeColor = "var(--accent-amber)";
             }
 
@@ -546,7 +548,7 @@ function AnalysisDetailContent({ params }: { params: Promise<{ id: string }> }) 
                   </div>
                   <div>
                     <h3 style={{ fontSize: "17px", fontWeight: 800, margin: "0 0 4px 0", color: "#fff" }}>
-                      Загальний фітнес-рейтинг
+                      {t.analysis.overallRating}
                     </h3>
                     <div style={{ display: "flex", gap: "8px", alignItems: "center", marginBottom: "8px" }}>
                       <span className="badge" style={{ 
@@ -559,16 +561,16 @@ function AnalysisDetailContent({ params }: { params: Promise<{ id: string }> }) 
                       }}>
                         {(() => {
                           const rate = g.overall_rating || 5.0;
-                          if (rate < 4.5) return "Рівень: Початківець";
-                          if (rate < 6.0) return "Рівень: Базовий фітнес";
-                          if (rate < 7.5) return "Рівень: Атлетична форма";
-                          if (rate < 8.5) return "Рівень: Професійний атлет";
-                          return "Рівень: Елітний атлет (Топ-клас)";
+                          if (rate < 4.5) return t.analysis.levelBeginner;
+                          if (rate < 6.0) return t.analysis.levelBasic;
+                          if (rate < 7.5) return t.analysis.levelAthletic;
+                          if (rate < 8.5) return t.analysis.levelPro;
+                          return t.analysis.levelElite;
                         })()}
                       </span>
                     </div>
                     <p style={{ color: "var(--text-secondary)", fontSize: "13px", margin: 0, lineHeight: 1.45 }}>
-                      Анатомічний рейтинг на основі пропорцій талії, м'язової маси та сухості тіла. Оцінка 8.0+ притаманна лише топовим атлетам.
+                      {t.analysis.ratingDesc}
                     </p>
                   </div>
                 </div>
@@ -577,7 +579,7 @@ function AnalysisDetailContent({ params }: { params: Promise<{ id: string }> }) 
                 <div className="metrics-grid">
                   {/* Card 1: Body Type */}
                   <div className="stat-card animate-in animate-delay-1" style={{ position: "relative", overflow: "hidden" }}>
-                    <div className="stat-label" style={{ display: "flex", alignItems: "center", gap: "6px" }}><BodyIcon size={16} /> Тип тіла</div>
+                    <div className="stat-label" style={{ display: "flex", alignItems: "center", gap: "6px" }}><BodyIcon size={16} /> {t.analysis.bodyType}</div>
                     <div className="stat-value gradient-text" style={{ fontSize: "26px", color: bodyTypeColor }}>
                       {bodyTypeCapitalized}
                     </div>
@@ -589,7 +591,7 @@ function AnalysisDetailContent({ params }: { params: Promise<{ id: string }> }) 
                   {/* Card: Height and Weight */}
                   <div className="stat-card animate-in animate-delay-2">
                     <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                      <div className="stat-label" style={{ display: "flex", alignItems: "center", gap: "6px" }}><RulerIcon size={16} /> Зріст та Вага</div>
+                      <div className="stat-label" style={{ display: "flex", alignItems: "center", gap: "6px" }}><RulerIcon size={16} /> {t.analysis.heightWeight}</div>
                       <button
                         onClick={() => {
                           if (isEditingMetrics) {
@@ -613,22 +615,22 @@ function AnalysisDetailContent({ params }: { params: Promise<{ id: string }> }) 
                           alignItems: "center"
                         }}
                       >
-                        {isEditingMetrics ? "Скасувати" : <EditIcon size={14} />}
+                        {isEditingMetrics ? t.common.cancel : <EditIcon size={14} />}
                       </button>
                     </div>
 
                     {!isEditingMetrics ? (
                       <div style={{ marginTop: "8px", display: "flex", flexDirection: "column", gap: "6px" }}>
                         <div>
-                          <span style={{ fontSize: "12px", color: "var(--text-secondary)" }}>Зріст: </span>
+                          <span style={{ fontSize: "12px", color: "var(--text-secondary)" }}>{t.analysis.heightLabel}: </span>
                           <span style={{ fontSize: "16px", fontWeight: 700, color: "#fff" }}>
-                            {analysis.height ? `${analysis.height} см` : analysis.estimated_height ? `${analysis.estimated_height} см (AI)` : "—"}
+                            {analysis.height ? `${analysis.height} ${t.analysis.cm}` : analysis.estimated_height ? `${analysis.estimated_height} ${t.analysis.cm} ${t.analysis.ai}` : "—"}
                           </span>
                         </div>
                         <div>
-                          <span style={{ fontSize: "12px", color: "var(--text-secondary)" }}>Вага: </span>
+                          <span style={{ fontSize: "12px", color: "var(--text-secondary)" }}>{t.analysis.weightLabel}: </span>
                           <span style={{ fontSize: "16px", fontWeight: 700, color: "#fff" }}>
-                            {analysis.weight ? `${analysis.weight} кг` : analysis.estimated_weight ? `${analysis.estimated_weight} кг (AI)` : "—"}
+                            {analysis.weight ? `${analysis.weight} ${t.analysis.kg}` : analysis.estimated_weight ? `${analysis.estimated_weight} ${t.analysis.kg} ${t.analysis.ai}` : "—"}
                           </span>
                         </div>
                       </div>
@@ -638,7 +640,7 @@ function AnalysisDetailContent({ params }: { params: Promise<{ id: string }> }) 
                           <input
                             type="number"
                             min="1"
-                            placeholder="Зріст (см)"
+                            placeholder={t.analysis.heightPlaceholder}
                             value={editHeight}
                             onChange={(e) => {
                               const val = e.target.value;
@@ -659,7 +661,7 @@ function AnalysisDetailContent({ params }: { params: Promise<{ id: string }> }) 
                           <input
                             type="number"
                             min="1"
-                            placeholder="Вага (кг)"
+                            placeholder={t.analysis.weightPlaceholder}
                             value={editWeight}
                             onChange={(e) => {
                               const val = e.target.value;
@@ -692,7 +694,7 @@ function AnalysisDetailContent({ params }: { params: Promise<{ id: string }> }) 
                             cursor: "pointer"
                           }}
                         >
-                          {isSavingMetrics ? "Збереження..." : "Зберегти"}
+                          {isSavingMetrics ? t.common.saving : t.common.save}
                         </button>
                       </div>
                     )}
@@ -700,73 +702,73 @@ function AnalysisDetailContent({ params }: { params: Promise<{ id: string }> }) 
 
                   {/* Card 2: Waist-to-Shoulder Ratio */}
                   <div className="stat-card animate-in animate-delay-2">
-                    <div className="stat-label" style={{ display: "flex", alignItems: "center", gap: "6px" }}><CompassIcon size={16} /> Талія до плечей</div>
+                    <div className="stat-label" style={{ display: "flex", alignItems: "center", gap: "6px" }}><CompassIcon size={16} /> {t.analysis.waistToShoulder}</div>
                     <div className="stat-value" style={{ color: "var(--accent-blue)" }}>
                       {displayedWaistShoulderRatio.toFixed(2)}
                     </div>
                     <div className="stat-caption" style={{ fontSize: "12px", color: "var(--text-secondary)", marginTop: "10px" }}>
                       {displayedWaistShoulderRatio < 0.75 
-                        ? "Ідеальний V-подібний силует (конус)" 
+                        ? t.analysis.idealVShape
                         : displayedWaistShoulderRatio < 0.85 
-                          ? "Збалансовані атлетичні пропорції" 
-                          : "Прямокутний або округлий тип фігури"}
+                          ? t.analysis.balancedAthletic
+                          : t.analysis.rectangularShape}
                     </div>
                   </div>
 
                   {/* Card 3: Body Fat Percentage */}
                   <div className="stat-card animate-in animate-delay-3">
-                    <div className="stat-label" style={{ display: "flex", alignItems: "center", gap: "6px" }}><PercentIcon size={16} /> Орієнтовний BF%</div>
+                    <div className="stat-label" style={{ display: "flex", alignItems: "center", gap: "6px" }}><PercentIcon size={16} /> {t.analysis.estimatedBF}</div>
                     <div className="stat-value" style={{ color: "var(--accent-green)" }}>
                       {g.body_fat_pct.toFixed(1)}%
                     </div>
                     <div className="stat-caption" style={{ fontSize: "12px", color: "var(--text-secondary)", marginTop: "10px" }}>
-                      Рівень підшкірного жиру. Розраховано за рельєфом пресу та контурами.
+                      {t.analysis.bfDesc}
                     </div>
                   </div>
 
                   {/* Card 4: Dryness Score */}
                   <div className="stat-card animate-in animate-delay-3">
-                    <div className="stat-label" style={{ display: "flex", alignItems: "center", gap: "6px" }}><ZapIcon size={16} /> Показник сухості (1-10)</div>
+                    <div className="stat-label" style={{ display: "flex", alignItems: "center", gap: "6px" }}><ZapIcon size={16} /> {t.analysis.drynessScore}</div>
                     <div className="stat-value" style={{ color: "var(--accent-teal)" }}>
                       {g.dryness_score ? g.dryness_score.toFixed(1) : "5.0"}
                     </div>
                     <div className="stat-caption" style={{ fontSize: "12px", color: "var(--text-secondary)", marginTop: "10px" }}>
                       {g.dryness_score >= 7.5 
-                        ? "Високий рівень рельєфу (шред)" 
+                        ? t.analysis.drynessHigh
                         : g.dryness_score >= 5.5 
-                          ? "Помірний рельєф, помітна дефініція" 
-                          : "М'яка форма, згладжений рельєф"}
+                          ? t.analysis.drynessMedium
+                          : t.analysis.drynessLow}
                     </div>
                   </div>
 
                   {/* Card 5: Muscle Mass Score */}
                   <div className="stat-card animate-in animate-delay-4">
-                    <div className="stat-label" style={{ display: "flex", alignItems: "center", gap: "6px" }}><DumbbellIcon size={16} /> М'язова маса (1-10)</div>
+                    <div className="stat-label" style={{ display: "flex", alignItems: "center", gap: "6px" }}><DumbbellIcon size={16} /> {t.analysis.muscleMass}</div>
                     <div className="stat-value" style={{ color: "var(--accent-purple)" }}>
                       {g.muscle_mass_score ? g.muscle_mass_score.toFixed(1) : "5.0"}
                     </div>
                     <div className="stat-caption" style={{ fontSize: "12px", color: "var(--text-secondary)", marginTop: "10px" }}>
                       {g.muscle_mass_score >= 7.5 
-                        ? "Гіпертрофована мускулатура (велика маса)" 
+                        ? t.analysis.muscleHigh
                         : g.muscle_mass_score >= 5.5 
-                          ? "Атлетична норма, помірна гіпертрофія" 
-                          : "Базовий рівень розвитку сили"}
+                          ? t.analysis.muscleMedium
+                          : t.analysis.muscleLow}
                     </div>
                   </div>
 
                   {/* Card 6: Torso to Leg Ratio — hidden for torso_only */}
                   {g.photo_type !== "torso_only" && (
                     <div className="stat-card animate-in animate-delay-4">
-                      <div className="stat-label" style={{ display: "flex", alignItems: "center", gap: "6px" }}><LegIcon size={16} /> Тулуб до ніг</div>
+                      <div className="stat-label" style={{ display: "flex", alignItems: "center", gap: "6px" }}><LegIcon size={16} /> {t.analysis.torsoToLegs}</div>
                       <div className="stat-value" style={{ color: "var(--accent-amber)" }}>
                         {displayedTorsoLegRatio.toFixed(2)}
                       </div>
                       <div className="stat-caption" style={{ fontSize: "12px", color: "var(--text-secondary)", marginTop: "10px" }}>
                         {displayedTorsoLegRatio < 0.5 
-                          ? "Довгі ноги (домінування нижньої частини)" 
+                          ? t.analysis.longLegs
                           : displayedTorsoLegRatio < 0.6 
-                            ? "Збалансовані та естетичні пропорції тіла" 
-                            : "Подовжений тулуб відносно ніг"}
+                            ? t.analysis.balancedProportions
+                            : t.analysis.longTorso}
                       </div>
                     </div>
                   )}
@@ -780,30 +782,30 @@ function AnalysisDetailContent({ params }: { params: Promise<{ id: string }> }) 
                     marginBottom: "16px",
                     color: "var(--text-primary)",
                   }}>
-                    <span style={{ display: "flex", alignItems: "center", gap: "8px" }}><DumbbellIcon size={18} /> Оцінка та деталізація м'язових груп</span>
+                    <span style={{ display: "flex", alignItems: "center", gap: "8px" }}><DumbbellIcon size={18} /> {t.analysis.muscleGroupsTitle}</span>
                   </h3>
                   <div className="muscles-grid">
                     {(() => {
                       const mg = g.muscle_groups || {
-                        shoulders: { score: 5.5, description: "Помірний тонус плечей." },
-                        chest: { score: 5.2, description: "Базовий рельєф грудних м'язів." },
-                        back: { score: 5.4, description: "Помірна ширина найширших м'язів спини." },
-                        arms: { score: 5.3, description: "Середня м'язова витривалість рук." },
-                        core: { score: 5.8, description: "Хороший тонус черевного преса." },
-                        legs: { score: 5.0, description: "Нормальна пропорція стегон." }
+                        shoulders: { score: 5.5, description: t.analysis.noData },
+                        chest: { score: 5.2, description: t.analysis.noData },
+                        back: { score: 5.4, description: t.analysis.noData },
+                        arms: { score: 5.3, description: t.analysis.noData },
+                        core: { score: 5.8, description: t.analysis.noData },
+                        legs: { score: 5.0, description: t.analysis.noData }
                       };
 
                       const groups = [
-                        { key: "shoulders", name: "Плечі (Shoulders)", IconComp: ShoulderIcon },
-                        { key: "chest", name: "Груди (Chest)", IconComp: ShieldIcon },
-                        { key: "back", name: "Спина (Back)", IconComp: DnaIcon },
-                        { key: "arms", name: "Руки (Arms)", IconComp: DumbbellIcon },
-                        { key: "core", name: "Прес та Кора (Core)", IconComp: FlameIcon },
-                        { key: "legs", name: "Ноги (Legs)", IconComp: LegIcon }
+                        { key: "shoulders", name: t.analysis.muscleShoulders, IconComp: ShoulderIcon },
+                        { key: "chest", name: t.analysis.muscleChest, IconComp: ShieldIcon },
+                        { key: "back", name: t.analysis.muscleBack, IconComp: DnaIcon },
+                        { key: "arms", name: t.analysis.muscleArms, IconComp: DumbbellIcon },
+                        { key: "core", name: t.analysis.muscleCore, IconComp: FlameIcon },
+                        { key: "legs", name: t.analysis.muscleLegs, IconComp: LegIcon }
                       ];
 
                       return groups.map((group) => {
-                        const info = mg[group.key as keyof typeof mg] || { score: 0, description: "Немає даних" };
+                        const info = mg[group.key as keyof typeof mg] || { score: 0, description: t.analysis.noData };
                         const isLegs = group.key === "legs";
                         const isTorsoOnly = g.photo_type === "torso_only";
                         const isLegsNotAnalyzable = isLegs && info.score <= 0.0;
@@ -858,12 +860,12 @@ function AnalysisDetailContent({ params }: { params: Promise<{ id: string }> }) 
                                   border: `1px solid ${borderC}`
                                 }}
                               >
-                                {isOut ? (isTorsoOnly ? "Поза кадром" : "Не оцінено") : info.score.toFixed(1)}
+                                {isOut ? (isTorsoOnly ? t.analysis.outOfFrame : t.analysis.notRated) : info.score.toFixed(1)}
                               </span>
                             </div>
                             <p style={{ fontSize: "13px", color: "var(--text-secondary)", margin: 0, lineHeight: 1.5 }}>
                               {isOut 
-                                ? (isTorsoOnly ? "Ця м'язова група не оцінювалася, оскільки знімок містить лише тулуб." : info.description) 
+                                ? (isTorsoOnly ? t.analysis.outOfFrameDesc : info.description) 
                                 : info.description}
                             </p>
                           </div>
@@ -894,7 +896,7 @@ function AnalysisDetailContent({ params }: { params: Promise<{ id: string }> }) 
                     WebkitTextFillColor: "transparent",
                     backgroundClip: "text"
                   }}>
-                    <span style={{ display: "flex", alignItems: "center", gap: "8px" }}><FileTextIcon size={18} /> Загальна оцінка та опис тіла</span>
+                    <span style={{ display: "flex", alignItems: "center", gap: "8px" }}><FileTextIcon size={18} /> {t.analysis.overallAssessment}</span>
                   </h3>
                   <p style={{
                     fontSize: "14px",
@@ -910,10 +912,10 @@ function AnalysisDetailContent({ params }: { params: Promise<{ id: string }> }) 
                 {/* Action */}
                 <div style={{ marginTop: "16px", display: "flex", gap: "12px" }}>
                   <button className="btn-primary" onClick={() => router.push(`/assistant?analysis_id=${analysis.id}`)}>
-                    Обговорити з асистентом
+                    {t.analysis.discussWithAssistant}
                   </button>
                   <button className="btn-secondary" onClick={() => router.push("/dashboard")}>
-                    Повернутись
+                    {t.analysis.goBack}
                   </button>
                 </div>
               </div>

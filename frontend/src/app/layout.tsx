@@ -1,10 +1,11 @@
 /**
- * Root layout — wraps all pages with AuthProvider and Sidebar.
+ * Root layout — wraps all pages with AuthProvider, LanguageProvider and Sidebar.
  */
 
 import type { Metadata } from "next";
 import "./globals.css";
 import { AuthProvider } from "@/hooks/useAuth";
+import { LanguageProvider } from "@/hooks/useLanguage";
 import Sidebar from "@/components/layout/Sidebar";
 
 export const metadata: Metadata = {
@@ -21,10 +22,12 @@ export default function RootLayout({
   return (
     <html lang="uk">
       <body>
-        <AuthProvider>
-          <Sidebar />
-          {children}
-        </AuthProvider>
+        <LanguageProvider>
+          <AuthProvider>
+            <Sidebar />
+            {children}
+          </AuthProvider>
+        </LanguageProvider>
       </body>
     </html>
   );

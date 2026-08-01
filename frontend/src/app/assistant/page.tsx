@@ -7,6 +7,7 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
+import { useLanguage } from "@/hooks/useLanguage";
 import { sendChatMessage, getChatHistory, listAnalyses, getAnalysis, getImageUrl, API_URL } from "@/lib/api";
 import type { ChatMessage, AnalysisSummary, Analysis } from "@/types";
 import { MessageCircleIcon, SearchIcon, AlertTriangleIcon } from "@/components/ui/Icons";
@@ -70,6 +71,7 @@ function formatMessageContent(content: string) {
 
 function AssistantContent() {
   const { user, loading: authLoading, isLoggedIn } = useAuth();
+  const { locale, t } = useLanguage();
   const router = useRouter();
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [input, setInput] = useState("");
@@ -79,6 +81,8 @@ function AssistantContent() {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const messagesContainerRef = useRef<HTMLDivElement>(null);
   const [showScrollBtn, setShowScrollBtn] = useState(false);
+
+  const dateLocale = locale === "uk" ? "uk-UA" : "en-US";
 
   useEffect(() => {
     if (authLoading) return;
@@ -105,11 +109,11 @@ function AssistantContent() {
       .then(([history, analysis, activeId]) => {
         if (activeId && analysis) {
           setSelectedAnalysis(analysis);
+          const dateStr = new Date(analysis.created_at).toLocaleDateString(dateLocale);
           const ratingStr = analysis.gemini_analysis?.overall_rating 
-            ? ` з загальним фітнес-рейтингом **${analysis.gemini_analysis.overall_rating.toFixed(1)}/10**` 
+            ? `${t.assistant.ratingSuffix} **${analysis.gemini_analysis.overall_rating.toFixed(1)}/10**` 
             : "";
-          const dateStr = new Date(analysis.created_at).toLocaleDateString("uk-UA");
-          const welcomeContent = `Привіт! Я твій віртуальний помічник по оцінці та покращенню твоєї фізичної форми. Я підключив твій аналіз від **${dateStr}**${ratingStr} і готовий відповісти на будь-які запитання щодо нього.`;
+          const welcomeContent = t.assistant.welcomeWithAnalysis(dateStr, ratingStr);
 
           setMessages(
             history.length > 0
@@ -128,14 +132,14 @@ function AssistantContent() {
             {
               id: "welcome",
               role: "assistant",
-              content: "Привіт! Я твій віртуальний помічник по оцінці та покращенню твоєї фізичної форми. Будь ласка, завантаж фото на головній сторінці, щоб розпочати аналіз.",
+              content: t.assistant.welcomeNoAnalysis,
               created_at: new Date().toISOString(),
             },
           ]);
         }
       })
       .catch((err) => {
-        console.error("Помилка завантаження даних чату:", err);
+        console.error(t.assistant.chatLoadError, err);
       });
   }, [authLoading, isLoggedIn, router]);
 
@@ -220,11 +224,11 @@ function AssistantContent() {
       });
 
       if (!response.ok) {
-        throw new Error("Не вдалося отримати відповідь від сервера");
+        throw new Error(t.assistant.streamError);
       }
 
       const reader = response.body?.getReader();
-      if (!reader) throw new Error("Потік відповіді недоступний");
+      if (!reader) throw new Error(t.assistant.streamUnavailable);
 
       const decoder = new TextDecoder();
       let accumulatedReply = "";
@@ -247,7 +251,7 @@ function AssistantContent() {
       setMessages((prev) =>
         prev.map((msg) =>
           msg.id === tempAssistantId
-            ? { ...msg, content: `Помилка: ${err.message}` }
+            ? { ...msg, content: `${t.common.error}: ${err.message}` }
             : msg
         )
       );
@@ -256,6 +260,8 @@ function AssistantContent() {
     }
   }
 
+  const suggestions = t.assistant.suggestions;
+
   return (
     <div className="page-container" style={{ display: "flex", flexDirection: "column", height: "100vh", padding: "0" }}>
       {/* Header */}
@@ -263,9 +269,9 @@ function AssistantContent() {
         <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
           <span style={{ display: "flex", alignItems: "center", color: "var(--accent-teal)" }}><MessageCircleIcon size={28} /></span>
           <div>
-            <h1 style={{ fontSize: "18px", fontWeight: 700, margin: 0 }}>Асистент</h1>
+            <h1 style={{ fontSize: "18px", fontWeight: 700, margin: 0 }}>{t.assistant.title}</h1>
             <p style={{ fontSize: "12px", color: "var(--text-muted)", margin: 0 }}>
-              Запитайте про результати аналізу, вправи чи харчування
+              {t.assistant.subtitle}
             </p>
           </div>
         </div>
@@ -290,7 +296,7 @@ function AssistantContent() {
               background: "var(--accent-purple)",
               boxShadow: "0 0 8px var(--accent-purple)",
             }} />
-            Аналіз підключено
+            {t.assistant.analysisConnected}
           </div>
         )}
       </div>
@@ -315,9 +321,9 @@ function AssistantContent() {
               style={{ width: "36px", height: "36px", borderRadius: "6px", objectFit: "cover", border: "1px solid rgba(255,255,255,0.1)" }}
             />
             <div>
-              <div style={{ fontSize: "13px", fontWeight: 700, color: "#fff" }}>Контекст аналізу підключено</div>
+              <div style={{ fontSize: "13px", fontWeight: 700, color: "#fff" }}>{t.assistant.contextConnected}</div>
               <div style={{ fontSize: "11px", color: "var(--text-secondary)" }}>
-                Аналізуємо за фото від {new Date(selectedAnalysis.created_at).toLocaleString("uk-UA")}
+                {t.assistant.analyzingPhoto} {new Date(selectedAnalysis.created_at).toLocaleString(dateLocale)}
               </div>
             </div>
           </div>
@@ -326,7 +332,7 @@ function AssistantContent() {
             style={{ fontSize: "11px", padding: "4px 10px", borderRadius: "8px" }}
             onClick={() => router.push(`/analysis/${selectedAnalysis.id}`)}
           >
-            <SearchIcon size={14} /> Дивитись звіт
+            <SearchIcon size={14} /> {t.assistant.viewReport}
           </button>
         </div>
       )}
@@ -343,10 +349,10 @@ function AssistantContent() {
           <div style={{ textAlign: "center", padding: "60px 0" }}>
             <div style={{ marginBottom: "16px", color: "var(--text-muted)" }}><MessageCircleIcon size={48} /></div>
             <p style={{ fontSize: "16px", fontWeight: 600, marginBottom: "8px" }}>
-              Ваш AI-тренер готовий
+              {t.assistant.trainerReady}
             </p>
             <p style={{ color: "var(--text-secondary)", fontSize: "14px", maxWidth: "400px", margin: "0 auto" }}>
-              Запитайте про результати аналізу, рекомендації щодо вправ, або загальні поради про тренування та харчування.
+              {t.assistant.trainerHint}
             </p>
           </div>
         )}
@@ -408,7 +414,7 @@ function AssistantContent() {
       {showScrollBtn && (
         <button
           onClick={scrollToBottom}
-          aria-label="Прокрутити вниз"
+          aria-label={t.assistant.scrollDown}
           style={{
             position: "absolute",
             bottom: "16px",
@@ -448,13 +454,7 @@ function AssistantContent() {
 
       {/* Suggestions Row */}
       <div className="flex gap-2 overflow-x-auto whitespace-nowrap pt-2 px-8 pb-2 max-md:px-4 hide-scrollbar">
-        {[
-          "Поясни мій рейтинг",
-          "Як покращити грудні м'язи?",
-          "Чому не оцінено ноги?",
-          "Які вправи мені підходять?",
-          "Поради щодо харчування"
-        ].map((q) => (
+        {suggestions.map((q) => (
           <button
             key={q}
             className="btn-secondary"
@@ -485,7 +485,7 @@ function AssistantContent() {
         <input
           type="text"
           className="input-field"
-          placeholder="Напишіть повідомлення..."
+          placeholder={t.assistant.placeholder}
           value={input}
           onChange={(e) => setInput(e.target.value)}
           disabled={sending}
@@ -499,7 +499,7 @@ function AssistantContent() {
           disabled={sending || !input.trim()}
           style={{ padding: "12px 24px", flexShrink: 0 }}
         >
-          {sending ? "..." : "Надіслати"}
+          {sending ? "..." : t.assistant.send}
         </button>
       </form>
     </div>

@@ -9,11 +9,14 @@ import { useRouter } from "next/navigation";
 import Link from "next/link";
 import { login } from "@/lib/api";
 import { useAuth } from "@/hooks/useAuth";
+import { useLanguage } from "@/hooks/useLanguage";
 import { ActivityIcon } from "@/components/ui/Icons";
+import type { Locale } from "@/locales";
 
 export default function LoginPage() {
   const router = useRouter();
   const { refresh } = useAuth();
+  const { locale, setLocale, t } = useLanguage();
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
   const [error, setError] = useState("");
@@ -34,11 +37,16 @@ export default function LoginPage() {
         router.push("/auth/verify-pending");
       }
     } catch (err: any) {
-      setError(err.message || "Помилка входу");
+      setError(err.message || t.auth.login.error);
     } finally {
       setLoading(false);
     }
   }
+
+  const locales: { key: Locale; flag: string; label: string }[] = [
+    { key: "uk", flag: "🇺🇦", label: "UA" },
+    { key: "en", flag: "🇬🇧", label: "EN" },
+  ];
 
   return (
     <div style={{
@@ -50,21 +58,67 @@ export default function LoginPage() {
       background: "var(--bg-primary)",
     }}>
       <div className="glass-card animate-in" style={{ width: "100%", maxWidth: "420px", padding: "40px" }}>
+        {/* Language Selector */}
+        <div style={{
+          display: "flex",
+          justifyContent: "flex-end",
+          marginBottom: "8px",
+        }}>
+          <div style={{
+            display: "flex",
+            borderRadius: "10px",
+            overflow: "hidden",
+            border: "1px solid var(--border-subtle)",
+            background: "rgba(255, 255, 255, 0.03)",
+          }}>
+            {locales.map((l) => (
+              <button
+                key={l.key}
+                type="button"
+                onClick={() => setLocale(l.key)}
+                style={{
+                  padding: "6px 14px",
+                  fontSize: "13px",
+                  fontWeight: 600,
+                  border: "none",
+                  cursor: "pointer",
+                  display: "flex",
+                  alignItems: "center",
+                  gap: "5px",
+                  transition: "all 0.25s ease",
+                  background: locale === l.key
+                    ? "rgba(45, 212, 191, 0.15)"
+                    : "transparent",
+                  color: locale === l.key
+                    ? "var(--accent-teal)"
+                    : "var(--text-muted)",
+                  boxShadow: locale === l.key
+                    ? "inset 0 0 0 1px rgba(45, 212, 191, 0.3)"
+                    : "none",
+                }}
+              >
+                <span style={{ fontSize: "15px" }}>{l.flag}</span>
+                {l.label}
+              </button>
+            ))}
+          </div>
+        </div>
+
         {/* Header */}
         <div style={{ textAlign: "center", marginBottom: "32px" }}>
           <div style={{ marginBottom: "12px", color: "var(--accent-teal)", display: "flex", justifyContent: "center" }}><ActivityIcon size={40} /></div>
           <h1 style={{ fontSize: "24px", fontWeight: 800, marginBottom: "8px" }}>
-            Вхід в <span className="gradient-text">AI Body Analyzer</span>
+            {t.auth.login.title} <span className="gradient-text">{t.auth.login.titleAccent}</span>
           </h1>
           <p style={{ color: "var(--text-secondary)", fontSize: "14px" }}>
-            Увійдіть для аналізу фізичної форми
+            {t.auth.login.subtitle}
           </p>
         </div>
 
         {/* Form */}
         <form onSubmit={handleSubmit} style={{ display: "flex", flexDirection: "column", gap: "16px" }}>
           <div>
-            <label className="input-label" htmlFor="login-email">Email</label>
+            <label className="input-label" htmlFor="login-email">{t.auth.login.emailLabel}</label>
             <input
               id="login-email"
               type="email"
@@ -77,12 +131,12 @@ export default function LoginPage() {
             />
           </div>
           <div>
-            <label className="input-label" htmlFor="login-password">Пароль</label>
+            <label className="input-label" htmlFor="login-password">{t.auth.login.passwordLabel}</label>
             <input
               id="login-password"
               type="password"
               className="input-field"
-              placeholder="••••••••"
+              placeholder={t.auth.login.passwordPlaceholder}
               value={password}
               onChange={(e) => setPassword(e.target.value)}
               required
@@ -110,15 +164,15 @@ export default function LoginPage() {
             disabled={loading}
             style={{ width: "100%", padding: "14px", fontSize: "15px", marginTop: "8px" }}
           >
-            {loading ? "Вхід..." : "Увійти"}
+            {loading ? t.auth.login.submitLoading : t.auth.login.submit}
           </button>
         </form>
 
         {/* Footer */}
         <p style={{ textAlign: "center", marginTop: "24px", fontSize: "13px", color: "var(--text-muted)" }}>
-          Немає акаунта?{" "}
+          {t.auth.login.noAccount}{" "}
           <Link href="/auth/register" style={{ color: "var(--accent-blue)", textDecoration: "none", fontWeight: 600 }}>
-            Зареєструватися
+            {t.auth.login.registerLink}
           </Link>
         </p>
       </div>

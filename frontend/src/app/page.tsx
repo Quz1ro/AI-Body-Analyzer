@@ -7,6 +7,7 @@
 import { useState, useRef, useCallback, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { useAuth } from "@/hooks/useAuth";
+import { useLanguage } from "@/hooks/useLanguage";
 import { uploadImage, createAnalysis, getImageUrl, getScanLimit } from "@/lib/api";
 import type { Analysis, ScanLimit } from "@/types";
 import { UploadIcon, ScanIcon, RulerIcon, ScaleIcon, CompassIcon, DumbbellIcon, AlertTriangleIcon, ZapIcon, CheckIcon, XCircleIcon } from "@/components/ui/Icons";
@@ -14,6 +15,7 @@ import TicTacToe from "@/components/ui/TicTacToe";
 
 export default function HomePage() {
   const { user, loading, isLoggedIn, emailVerified } = useAuth();
+  const { t } = useLanguage();
   const router = useRouter();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
@@ -53,16 +55,16 @@ export default function HomePage() {
 
       // Check scan limit before uploading
       if (scanLimit && scanLimit.remaining <= 0) {
-        setStatus("Денний ліміт сканувань вичерпано. Спробуйте завтра.");
+        setStatus(t.home.scanLimitError);
         return;
       }
 
       if (!["image/jpeg", "image/png"].includes(file.type)) {
-        setStatus("Підтримуються лише JPG та PNG файли.");
+        setStatus(t.home.onlyJpgPng);
         return;
       }
       if (file.size > 10 * 1024 * 1024) {
-        setStatus("Файл більший за 10 МБ.");
+        setStatus(t.home.fileTooLarge);
         return;
       }
 
@@ -70,7 +72,7 @@ export default function HomePage() {
       setProcessing(true);
       setAnalysis(null);
       setProgress(5);
-      setProgressMessage("Завантаження фото на сервер...");
+      setProgressMessage(t.home.uploading);
       setStatus("");
 
       // Smooth progress bar increments with >10s warning
@@ -85,18 +87,18 @@ export default function HomePage() {
           }
           
           if (elapsed > 10) {
-            setProgressMessage("Це займає трошки більше часу, будь ласка, зачекайте...");
+            setProgressMessage(t.home.takingLonger);
           } else {
             if (nextVal < 30) {
-              setProgressMessage("Сканування контурів та силуету...");
+              setProgressMessage(t.home.scanningContours);
             } else if (nextVal < 55) {
-              setProgressMessage("MediaPipe: Визначення скелетних орієнтирів...");
+              setProgressMessage(t.home.mediapipe);
             } else if (nextVal < 75) {
-              setProgressMessage("Gemini: Візуальне коригування таза та кінцівок...");
+              setProgressMessage(t.home.geminiCorrection);
             } else if (nextVal < 88) {
-              setProgressMessage("Пошук найвужчої точки талії та плечових вершин...");
+              setProgressMessage(t.home.waistSearch);
             } else {
-              setProgressMessage("Формування загальної оцінки та рекомендацій...");
+              setProgressMessage(t.home.forming);
             }
           }
           return nextVal;
@@ -113,7 +115,7 @@ export default function HomePage() {
         
         clearInterval(progressInterval);
         setProgress(100);
-        setProgressMessage("Готово! Перенаправлення до результатів...");
+        setProgressMessage(t.home.done);
         
         // Update scan limit after successful analysis
         getScanLimit().then(setScanLimit).catch(() => {});
@@ -132,10 +134,10 @@ export default function HomePage() {
         if (err.status === 429) {
           getScanLimit().then(setScanLimit).catch(() => {});
         }
-        setStatus(`Помилка: ${err.message}`);
+        setStatus(`${t.home.errorPrefix}: ${err.message}`);
       }
     },
-    [isLoggedIn, router, height, weight, scanLimit]
+    [isLoggedIn, router, height, weight, scanLimit, t]
   );
 
   const handleDrop = useCallback(
@@ -168,11 +170,10 @@ export default function HomePage() {
           lineHeight: 1.1,
           marginBottom: "16px",
         }}>
-          Аналіз <span className="gradient-text">фізичної форми</span>
+          {t.home.title} <span className="gradient-text">{t.home.titleAccent}</span>
         </h1>
         <p style={{ color: "var(--text-secondary)", fontSize: "16px", maxWidth: "560px", lineHeight: 1.6 }}>
-          Завантажте фото в повний зріст — система визначить ключові точки тіла,
-          обчислить пропорції, симетрію та поставу.
+          {t.home.subtitle}
         </p>
 
         {/* Scan Limit Indicator */}
@@ -216,8 +217,8 @@ export default function HomePage() {
               color: scanLimit.remaining > 0 ? "var(--accent-teal)" : "var(--accent-red)",
             }}>
               {scanLimit.remaining > 0
-                ? `${scanLimit.remaining} з ${scanLimit.limit} сканувань залишилось сьогодні`
-                : "Ліміт вичерпано — спробуйте завтра"}
+                ? `${scanLimit.remaining} ${t.home.scanOf} ${scanLimit.limit} ${t.home.scanRemaining}`
+                : t.home.scanLimitReached}
             </span>
           </div>
         )}
@@ -235,13 +236,13 @@ export default function HomePage() {
         }}>
           <div style={{ flex: 1 }}>
             <label style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "12px", fontWeight: 700, color: "var(--text-secondary)", marginBottom: "6px" }}>
-              <RulerIcon size={14} /> Зріст (см, опціонально)
+              <RulerIcon size={14} /> {t.home.heightLabel}
             </label>
             <input
               type="number"
               min="1"
               className="input-field"
-              placeholder="напр. 180"
+              placeholder={t.home.heightPlaceholder}
               value={height}
               onChange={(e) => {
                 const val = e.target.value;
@@ -254,13 +255,13 @@ export default function HomePage() {
           </div>
           <div style={{ flex: 1 }}>
             <label style={{ display: "flex", alignItems: "center", gap: "6px", fontSize: "12px", fontWeight: 700, color: "var(--text-secondary)", marginBottom: "6px" }}>
-              <ScaleIcon size={14} /> Вага (кг, опціонально)
+              <ScaleIcon size={14} /> {t.home.weightLabel}
             </label>
             <input
               type="number"
               min="1"
               className="input-field"
-              placeholder="напр. 75"
+              placeholder={t.home.weightPlaceholder}
               value={weight}
               onChange={(e) => {
                 const val = e.target.value;
@@ -291,7 +292,7 @@ export default function HomePage() {
           }}>
              <div style={{ display: "flex", justifyContent: "center", marginBottom: "16px", color: "var(--accent-teal)", animation: "pulse 1.5s infinite" }}><ScanIcon size={40} /></div>
             <h3 style={{ fontSize: "18px", fontWeight: 700, marginBottom: "8px", color: "var(--text-primary)" }}>
-              Виконується аналіз
+              {t.home.analyzing}
             </h3>
             
             <p style={{ fontSize: "14px", color: "var(--accent-teal)", fontWeight: 600, marginBottom: "20px" }}>
@@ -326,7 +327,7 @@ export default function HomePage() {
             onClick={() => {
               if (processing) return;
               if (scanLimit && scanLimit.remaining <= 0) {
-                setStatus("Денний ліміт сканувань вичерпано. Спробуйте завтра.");
+                setStatus(t.home.scanLimitError);
                 return;
               }
               fileInputRef.current?.click();
@@ -336,7 +337,7 @@ export default function HomePage() {
             onDrop={(e) => {
               if (scanLimit && scanLimit.remaining <= 0) {
                 e.preventDefault();
-                setStatus("Денний ліміт сканувань вичерпано. Спробуйте завтра.");
+                setStatus(t.home.scanLimitError);
                 return;
               }
               handleDrop(e);
@@ -356,18 +357,18 @@ export default function HomePage() {
             />
              <div style={{ display: "flex", justifyContent: "center", marginBottom: "12px", color: "var(--text-muted)" }}><UploadIcon size={48} /></div>
             <p style={{ fontSize: "16px", fontWeight: 600, marginBottom: "4px" }}>
-              {isLoggedIn ? "Перетягніть фото сюди" : "Увійдіть для аналізу"}
+              {isLoggedIn ? t.home.dropzoneText : t.home.loginRequired}
             </p>
             <p style={{ fontSize: "14px", color: "var(--text-muted)" }}>
-              {isLoggedIn ? "або натисніть, щоб вибрати • JPG, PNG до 10 МБ" : "Створіть акаунт або увійдіть"}
+              {isLoggedIn ? t.home.dropzoneSubtext : t.home.loginRequiredSub}
             </p>
             {!isLoggedIn && (
               <div style={{ marginTop: "16px", display: "flex", gap: "12px", justifyContent: "center" }}>
                 <button className="btn-primary" onClick={(e) => { e.stopPropagation(); router.push("/auth/register"); }}>
-                  Реєстрація
+                  {t.home.registerBtn}
                 </button>
                 <button className="btn-secondary" onClick={(e) => { e.stopPropagation(); router.push("/auth/login"); }}>
-                  Увійти
+                  {t.home.loginBtn}
                 </button>
               </div>
             )}
@@ -402,46 +403,46 @@ export default function HomePage() {
             {/* Metrics */}
             <div>
               <h3 style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "18px", fontWeight: 700, marginBottom: "16px" }}>
-                <CompassIcon size={20} /> Метрики
+                <CompassIcon size={20} /> {t.home.metrics}
               </h3>
 
               <div style={{ display: "grid", gridTemplateColumns: "1fr 1fr", gap: "12px", marginBottom: "24px" }}>
                 <div className="stat-card">
-                  <div className="stat-label">Плечі / Талія</div>
+                  <div className="stat-label">{t.home.shoulderHip}</div>
                   <div className="stat-value gradient-text">
                     {analysis.proportions.shoulder_to_hip_ratio?.toFixed(2)}
                   </div>
-                  <div className="stat-caption">V-подібний силует при більшому значенні</div>
+                  <div className="stat-caption">{t.home.vSilhouette}</div>
                 </div>
                 <div className="stat-card">
-                  <div className="stat-label">Симетрія рук</div>
+                  <div className="stat-label">{t.home.armSymmetry}</div>
                   <div className="stat-value" style={{ color: analysis.proportions.arm_symmetry >= 95 ? "var(--accent-green)" : "var(--accent-amber)" }}>
                     {analysis.proportions.arm_symmetry?.toFixed(1)}%
                   </div>
-                  <div className="stat-caption">100% = ідеальна симетрія</div>
+                  <div className="stat-caption">{t.home.perfectSymmetry}</div>
                 </div>
                 <div className="stat-card">
-                  <div className="stat-label">Симетрія ніг</div>
+                  <div className="stat-label">{t.home.legSymmetry}</div>
                   {analysis.gemini_analysis?.photo_type === "torso_only" || (analysis.proportions.leg_symmetry ?? 0) <= 0 ? (
                     <>
                       <div className="stat-value" style={{ color: "var(--text-muted)", fontSize: "20px" }}>N/A</div>
-                      <div className="stat-caption">Ноги не видно в кадрі</div>
+                      <div className="stat-caption">{t.home.legsNotVisible}</div>
                     </>
                   ) : (
                     <>
                       <div className="stat-value" style={{ color: analysis.proportions.leg_symmetry >= 95 ? "var(--accent-green)" : "var(--accent-amber)" }}>
                         {analysis.proportions.leg_symmetry?.toFixed(1)}%
                       </div>
-                      <div className="stat-caption">100% = ідеальна симетрія</div>
+                      <div className="stat-caption">{t.home.perfectSymmetry}</div>
                     </>
                   )}
                 </div>
                 <div className="stat-card">
-                  <div className="stat-label">Нахил плечей</div>
+                  <div className="stat-label">{t.home.shoulderTilt}</div>
                   <div className="stat-value" style={{ color: analysis.posture.shoulder_tilt <= 6 ? "var(--accent-green)" : "var(--accent-red)" }}>
                     {analysis.posture.shoulder_tilt?.toFixed(1)}%
                   </div>
-                  <div className="stat-caption">Менше = рівніше</div>
+                  <div className="stat-caption">{t.home.lessIsFlatter}</div>
                 </div>
               </div>
 
@@ -449,7 +450,7 @@ export default function HomePage() {
               {analysis.weak_zones.length > 0 && (
                 <>
                   <h3 style={{ display: "flex", alignItems: "center", gap: "8px", fontSize: "18px", fontWeight: 700, marginBottom: "12px" }}>
-                    <DumbbellIcon size={20} /> Спостереження
+                    <DumbbellIcon size={20} /> {t.home.observations}
                   </h3>
                   <div style={{ display: "flex", flexDirection: "column", gap: "8px" }}>
                     {analysis.weak_zones.map((zone, i) => (
@@ -486,13 +487,13 @@ export default function HomePage() {
                   className="btn-primary"
                   onClick={() => router.push(`/analysis/${analysis.id}`)}
                 >
-                  Детальний звіт →
+                  {t.home.detailedReport}
                 </button>
                 <button
                   className="btn-secondary"
                   onClick={() => router.push("/assistant")}
                 >
-                  Запитати асистента
+                  {t.home.askAssistant}
                 </button>
               </div>
             </div>
@@ -512,10 +513,10 @@ export default function HomePage() {
             <span style={{ color: "var(--accent-amber)", display: "flex", alignItems: "center" }}><AlertTriangleIcon size={20} /></span>
             <div>
               <div style={{ fontWeight: 600, fontSize: "14px", marginBottom: "4px", color: "var(--accent-amber)" }}>
-                Дисклеймер
+                {t.home.disclaimer}
               </div>
               <div style={{ fontSize: "13px", color: "var(--text-secondary)" }}>
-                Це орієнтовна оцінка за 2D-фото, а не медичний висновок. Точність залежить від ракурсу, освітлення та одягу.
+                {t.home.disclaimerText}
               </div>
             </div>
           </div>
